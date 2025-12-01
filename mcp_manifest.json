@@ -1,0 +1,93 @@
+{
+  "mcpVersion": "2024-11-05",
+  "name": "smpc-mcp-server",
+  "version": "1.0.0",
+  "description": "Model Context Protocol server for querying Icelandic SmPC (Summary of Product Characteristics) documents",
+  "serverUrl": "http://localhost:8000",
+  "transport": "http",
+  "tools": [
+    {
+      "name": "search_smpc_sections",
+      "description": "Search SmPC sections using vector search. Returns chunks with metadata including drug_id, section_number, section_title, and canonical_key.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Search query in Icelandic or English"
+          },
+          "drug_id": {
+            "type": "string",
+            "description": "Optional drug identifier to filter results to a specific medication"
+          }
+        },
+        "required": ["query"]
+      }
+    },
+    {
+      "name": "ask_smpc",
+      "description": "Ask a question about SmPC documents. Uses hybrid retrieval (rule-based + vector), memory-aware for multi-turn conversations, with mandatory citations in format [drug_id, kafli section_number: section_title].",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "Question in Icelandic about medication information"
+          },
+          "drug_id": {
+            "type": "string",
+            "description": "Optional drug identifier to filter to a specific medication"
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Session identifier for conversation memory (defaults to 'default')"
+          }
+        },
+        "required": ["question"]
+      }
+    },
+    {
+      "name": "list_drugs",
+      "description": "List all available drugs in the vector store with their metadata (drug_id, version_hash, extracted_at).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "get_section",
+      "description": "Get raw text for a specific section from structured JSON. Useful for verification of answers.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "drug_id": {
+            "type": "string",
+            "description": "Drug identifier"
+          },
+          "section_number": {
+            "type": "string",
+            "description": "Section number (e.g., '4.3', '6.1')"
+          }
+        },
+        "required": ["drug_id", "section_number"]
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "smpc://{drug_id}",
+      "name": "SmPC Drug Metadata",
+      "description": "Get metadata and version hash for a specific drug",
+      "mimeType": "application/json"
+    },
+    {
+      "uri": "smpc://{drug_id}/{section_number}",
+      "name": "SmPC Section Text",
+      "description": "Get raw text for a specific section (for sponsor verification)",
+      "mimeType": "text/plain"
+    }
+  ],
+  "authentication": {
+    "type": "none"
+  }
+}
