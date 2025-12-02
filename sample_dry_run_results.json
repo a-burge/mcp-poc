@@ -1,0 +1,829 @@
+{
+  "summary": {
+    "total": 50,
+    "successful": 46,
+    "skipped": 4,
+    "failed": 0,
+    "smpc_skipped": 0
+  },
+  "smpc_skipped_details": [],
+  "all_results": {
+    "successful": [
+      {
+        "success": true,
+        "drug_id": "Remurel_SmPC",
+        "filename": "Remurel_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 22,
+        "top_level_sections": [
+          "2",
+          "4",
+          "5",
+          "6",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Dexavit_SmPC",
+        "filename": "Dexavit_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 27,
+        "top_level_sections": [
+          "4",
+          "5",
+          "6",
+          "1",
+          "3"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Botox_SmPC",
+        "filename": "Botox_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 9,
+        "top_level_sections": [
+          "4",
+          "8",
+          "6",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Kenacort_T_SmPC",
+        "filename": "Kenacort_T_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 25,
+        "top_level_sections": [
+          "1",
+          "4",
+          "2",
+          "6",
+          "5",
+          "3"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Oftagel_stakskammtar_SmPC",
+        "filename": "Oftagel_stakskammtar_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 23,
+        "top_level_sections": [
+          "1",
+          "4",
+          "5",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Sevelamerkarbonat_WH_SmPC",
+        "filename": "Sevelamerkarbonat_WH_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 25,
+        "top_level_sections": [
+          "1",
+          "4",
+          "2",
+          "3",
+          "5",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Baclofen_Sintetica_2mgml_SmPC",
+        "filename": "Baclofen_Sintetica_2mgml_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 33,
+        "top_level_sections": [
+          "1",
+          "4",
+          "2",
+          "3",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Tadalafil_Krka_20_mg_SmPC",
+        "filename": "Tadalafil_Krka_20_mg_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 27,
+        "top_level_sections": [
+          "4",
+          "5",
+          "2",
+          "6",
+          "3"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Toilax_5mg_SmPC",
+        "filename": "Toilax_5mg_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 26,
+        "top_level_sections": [
+          "1",
+          "4",
+          "3",
+          "5",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Cetirizin_STADA_10mg_filmuhúðaðar_töflur_SmPC",
+        "filename": "Cetirizin_STADA_10mg_filmuhúðaðar_töflur_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 31,
+        "top_level_sections": [
+          "1",
+          "4",
+          "10",
+          "2",
+          "5",
+          "3",
+          "7",
+          "8",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "SmofKabiven_Extra_Nitrogen_SmPC",
+        "filename": "SmofKabiven_Extra_Nitrogen_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 29,
+        "top_level_sections": [
+          "1",
+          "2",
+          "4",
+          "6",
+          "8",
+          "5"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Tramól_L_SmPC",
+        "filename": "Tramól_L_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 24,
+        "top_level_sections": [
+          "4",
+          "5",
+          "6",
+          "8"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Teriflunomide_Zentiva_SmPC",
+        "filename": "Teriflunomide_Zentiva_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 36,
+        "top_level_sections": [
+          "4",
+          "2",
+          "3",
+          "8",
+          "5",
+          "6",
+          "7",
+          "9",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Paracet-250mg-SmPC",
+        "filename": "Paracet-250mg-SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 26,
+        "top_level_sections": [
+          "1",
+          "4",
+          "2",
+          "3",
+          "5",
+          "6",
+          "7"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Montelukast-Alvogen_5mg_SmPC",
+        "filename": "Montelukast-Alvogen_5mg_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 30,
+        "top_level_sections": [
+          "4",
+          "10",
+          "5",
+          "6",
+          "7",
+          "3",
+          "9",
+          "2"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Myleran_SmPC",
+        "filename": "Myleran_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 27,
+        "top_level_sections": [
+          "1",
+          "4",
+          "3",
+          "5",
+          "6",
+          "7",
+          "8",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Dexaject_SmPC",
+        "filename": "Dexaject_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 31,
+        "top_level_sections": [
+          "3",
+          "1",
+          "2",
+          "4",
+          "5",
+          "6",
+          "8",
+          "9",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Nipruss_SmPC",
+        "filename": "Nipruss_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 32,
+        "top_level_sections": [
+          "4",
+          "1",
+          "5",
+          "10",
+          "2",
+          "3",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Mycofenolsyra_Accord_SmPC",
+        "filename": "Mycofenolsyra_Accord_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 26,
+        "top_level_sections": [
+          "4",
+          "10",
+          "5",
+          "3",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Kåvepenin_töflur_SmPC",
+        "filename": "Kåvepenin_töflur_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 26,
+        "top_level_sections": [
+          "1",
+          "4",
+          "2",
+          "3",
+          "5",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Trileptal_SmPC",
+        "filename": "Trileptal_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 33,
+        "top_level_sections": [
+          "1",
+          "4",
+          "2",
+          "3",
+          "5",
+          "6",
+          "8",
+          "9",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Hypotron_5mg_SmPC",
+        "filename": "Hypotron_5mg_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 26,
+        "top_level_sections": [
+          "1",
+          "4",
+          "2",
+          "3",
+          "5",
+          "7",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Ceftazidima_Normon_1_g_SmPC",
+        "filename": "Ceftazidima_Normon_1_g_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 34,
+        "top_level_sections": [
+          "1",
+          "4",
+          "2",
+          "3",
+          "7",
+          "8",
+          "9",
+          "5",
+          "10",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Vancomycin-MIP_SmPC",
+        "filename": "Vancomycin-MIP_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 26,
+        "top_level_sections": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Heparin_LEO_5000_IU_ml_SmPC",
+        "filename": "Heparin_LEO_5000_IU_ml_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 23,
+        "top_level_sections": [
+          "4",
+          "5",
+          "6",
+          "3"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Midazolam_Accord_SmPC",
+        "filename": "Midazolam_Accord_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 37,
+        "top_level_sections": [
+          "1",
+          "4",
+          "2",
+          "6",
+          "5",
+          "7",
+          "8",
+          "9",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Allorin_SmPC",
+        "filename": "Allorin_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 32,
+        "top_level_sections": [
+          "4",
+          "2",
+          "10",
+          "3",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "1"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Betmiga_Lyfjaver_SmPC",
+        "filename": "Betmiga_Lyfjaver_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 10,
+        "top_level_sections": [
+          "6",
+          "3"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Fucidin-Hydrocortison_SmPC",
+        "filename": "Fucidin-Hydrocortison_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 23,
+        "top_level_sections": [
+          "4",
+          "5",
+          "6",
+          "3"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Keppra_Lyfjaver_mixtúra_SmPC",
+        "filename": "Keppra_Lyfjaver_mixtúra_SmPC.pdf",
+        "has_smpc_in_name": true,
+        "reason": "Dry run - valid structure",
+        "sections_found": 43,
+        "top_level_sections": [
+          "4",
+          "2",
+          "3",
+          "7",
+          "10",
+          "5",
+          "6",
+          "8",
+          "9"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "olanzapine-teva-epar-product-information_is",
+        "filename": "olanzapine-teva-epar-product-information_is.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 76,
+        "top_level_sections": [
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "2",
+          "9",
+          "1",
+          "8",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Valaciclovir_Bluefish_Fylgiseðill",
+        "filename": "Valaciclovir_Bluefish_Fylgiseðill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 2,
+        "top_level_sections": [
+          "1"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Exelon_Heilsa_Fylgisedill",
+        "filename": "Exelon_Heilsa_Fylgisedill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 4,
+        "top_level_sections": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Exemestan_Actavis_Fylgisedill",
+        "filename": "Exemestan_Actavis_Fylgisedill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 4,
+        "top_level_sections": [
+          "1",
+          "3",
+          "5"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Galantamin_STADA_Fylgiseðill",
+        "filename": "Galantamin_STADA_Fylgiseðill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 9,
+        "top_level_sections": [
+          "1",
+          "2",
+          "4",
+          "5",
+          "6",
+          "8",
+          "7"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Primovist_Fylgisedill",
+        "filename": "Primovist_Fylgisedill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 8,
+        "top_level_sections": [
+          "1",
+          "3",
+          "4",
+          "6",
+          "7",
+          "2",
+          "5",
+          "8"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "ziextenzo-epar-product-information_is",
+        "filename": "ziextenzo-epar-product-information_is.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 47,
+        "top_level_sections": [
+          "1",
+          "4",
+          "3",
+          "5",
+          "6",
+          "7",
+          "8",
+          "2",
+          "9",
+          "10"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "idacio-epar-product-information_is",
+        "filename": "idacio-epar-product-information_is.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 31,
+        "top_level_sections": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "novomix-epar-product-information_is",
+        "filename": "novomix-epar-product-information_is.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 68,
+        "top_level_sections": [
+          "1",
+          "4",
+          "3",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "2"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Leidbeiningar_vegna_notkunar_hja_bornum",
+        "filename": "Leidbeiningar_vegna_notkunar_hja_bornum.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 29,
+        "top_level_sections": [
+          "3",
+          "5",
+          "8",
+          "10",
+          "7",
+          "4",
+          "9",
+          "1",
+          "6",
+          "2"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Nicotinell_Mint_Heilsa_1mg_Fylgisedill",
+        "filename": "Nicotinell_Mint_Heilsa_1mg_Fylgisedill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 3,
+        "top_level_sections": [
+          "6",
+          "1"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Voltaren_Heilsa_Fylgisedill",
+        "filename": "Voltaren_Heilsa_Fylgisedill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 3,
+        "top_level_sections": [
+          "1",
+          "3",
+          "6"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "stivarga-epar-product-information_is",
+        "filename": "stivarga-epar-product-information_is.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 49,
+        "top_level_sections": [
+          "4",
+          "3",
+          "1",
+          "2",
+          "6",
+          "7",
+          "8",
+          "5"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Diprospan_Fylgisedill",
+        "filename": "Diprospan_Fylgisedill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 5,
+        "top_level_sections": [
+          "5",
+          "2",
+          "3",
+          "7",
+          "1"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "Bisoprolol_Medical_Valley_Fylgisedill",
+        "filename": "Bisoprolol_Medical_Valley_Fylgisedill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 6,
+        "top_level_sections": [
+          "1",
+          "5",
+          "10",
+          "6",
+          "7"
+        ]
+      },
+      {
+        "success": true,
+        "drug_id": "herceptin-epar-product-information_is",
+        "filename": "herceptin-epar-product-information_is.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Dry run - valid structure",
+        "sections_found": 92,
+        "top_level_sections": [
+          "4",
+          "3",
+          "6",
+          "7",
+          "8",
+          "9",
+          "10",
+          "1",
+          "5",
+          "2"
+        ]
+      }
+    ],
+    "failed": [],
+    "skipped": [
+      {
+        "success": false,
+        "drug_id": "Yervoy_Patient_Card_Uppfært_IMAjúlí2025_skjáútgáfa",
+        "filename": "Yervoy_Patient_Card_Uppfært_IMAjúlí2025_skjáútgáfa.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Invalid SmPC structure",
+        "sections_found": 1,
+        "top_level_sections": [
+          "7"
+        ],
+        "all_sections": [
+          "7"
+        ]
+      },
+      {
+        "success": false,
+        "drug_id": "Mavenclad_leidarvisir_fyrir_laekna",
+        "filename": "Mavenclad_leidarvisir_fyrir_laekna.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Invalid SmPC structure",
+        "sections_found": 1,
+        "top_level_sections": [
+          "2"
+        ],
+        "all_sections": [
+          "2"
+        ]
+      },
+      {
+        "success": false,
+        "drug_id": "Fylgibréf_til_heilbrigðisstarfsmanna_júl_2024",
+        "filename": "Fylgibréf_til_heilbrigðisstarfsmanna_júl_2024.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Invalid SmPC structure",
+        "sections_found": 0,
+        "top_level_sections": [],
+        "all_sections": []
+      },
+      {
+        "success": false,
+        "drug_id": "Noromectin_fylgiseðill",
+        "filename": "Noromectin_fylgiseðill.pdf",
+        "has_smpc_in_name": false,
+        "reason": "Invalid SmPC structure",
+        "sections_found": 1,
+        "top_level_sections": [],
+        "all_sections": [
+          "60"
+        ]
+      }
+    ]
+  }
+}

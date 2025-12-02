@@ -1,0 +1,315 @@
+{
+  "drug_id": "Kåvepenin_mixtúrukyrni_SmPC",
+  "source_pdf": "data/raw_source_docs/Kåvepenin_mixtúrukyrni_SmPC.pdf",
+  "version_hash": "27effa47f273ace2b8fb75344c115a8a",
+  "extracted_at": "2025-12-01T22:05:31.756472+00:00",
+  "sections": {
+    "1": {
+      "number": "1",
+      "parent": null,
+      "heading": "1. HEITI LYFS",
+      "title": "Heiti lyfs",
+      "canonical_key": "name",
+      "text": "Kávepenin 100 mg/ml mixtúrukyrni, dreifa.",
+      "children": []
+    },
+    "2": {
+      "number": "2",
+      "parent": null,
+      "heading": "2. INNIHALDSLÝSING",
+      "title": "Innihaldslýsing",
+      "canonical_key": "composition",
+      "text": "Fenoximetylpenicillinkalíum 100 mg/ml. Hjálparefni með þekkta verkun: Aspartam (13,3 mg/ml), frúktósi (ávaxtasykur) 650 mg/ml. Sjá lista yfir öll hjálparefni í kafla 6.1.",
+      "children": []
+    },
+    "3": {
+      "number": "3",
+      "parent": null,
+      "heading": "3. LYFJAFORM",
+      "title": "Lyfjaform",
+      "canonical_key": "pharmaceutical_form",
+      "text": "Mixtúrukyrni, dreifa.",
+      "children": []
+    },
+    "4": {
+      "number": "4",
+      "parent": null,
+      "heading": "4. KLÍNÍSKAR UPPLÝSINGAR",
+      "title": "Klínískar upplýsingar",
+      "canonical_key": "clinical_particulars",
+      "text": "Klínískar upplýsingar um lyfið.",
+      "children": [
+        "4.1",
+        "4.2",
+        "4.3",
+        "4.4",
+        "4.5",
+        "4.6",
+        "4.7",
+        "4.8",
+        "4.9"
+      ]
+    },
+    "4.1": {
+      "number": "4.1",
+      "parent": "4",
+      "heading": "4.1 Ábendingar",
+      "title": "Ábendingar",
+      "canonical_key": "indications",
+      "text": "Hálsbólga, bráð skútabólga, bráð miðeyrabólga, lungnabólga sem smitast utan sjúkrahúsa, einfaldar húð- og mjúkvefsásýkingar, Borrelia húðsýkingar, tannrótarbólga. Hafa á í huga opinberar leiðbeiningar varðandi notkun sýklalyfja.",
+      "children": []
+    },
+    "4.2": {
+      "number": "4.2",
+      "parent": "4",
+      "heading": "4.2 Skammtar og lyfjagjöf",
+      "title": "Skammtar og lyfjagjöf",
+      "canonical_key": "dosage_and_administration",
+      "text": "Skammtar og lyfjagjöf fyrir ýmis sýkingar.",
+      "children": []
+    },
+    "4.3": {
+      "number": "4.3",
+      "parent": "4",
+      "heading": "4.3 Frábendingar",
+      "title": "Frábendingar",
+      "canonical_key": "contraindications",
+      "text": "Ofnæmi fyrir virka efni, öðru penicillíni eða einhverju hjálparefni sem talin eru upp í kafla 6.1.",
+      "children": []
+    },
+    "4.4": {
+      "number": "4.4",
+      "parent": "4",
+      "heading": "4.4 Sérstök varúðarorð og varúðarreglur við notkun",
+      "title": "Sérstök varúðarorð og varúðarreglur við notkun",
+      "canonical_key": "warnings_and_precautions",
+      "text": "Krossófnæmi á milli penicillina og cefalosporina kemur fyrir. Niðurgangur/sýndarhimnuristilbólga (pseudomembranous colitis) af völdum Clostridium difficile kemur fyrir. Þess vegna skal fylgjast vel með sjúklingum með niðurgang.",
+      "children": []
+    },
+    "4.5": {
+      "number": "4.5",
+      "parent": "4",
+      "heading": "4.5 Milliverkanir við önnur lyf og aðrar milliverkanir",
+      "title": "Milliverkanir við önnur lyf og aðrar milliverkanir",
+      "canonical_key": "interactions",
+      "text": "Vera má að breyta þurfir skömmtum við samhliða notkun Kávepenin og metotrexats. Einu alvarlegu tilfelli svæsinna eiturverkana metotrexats hefur verið lýst þar sem sjúklingurinn fékk samhliða meðferð með furosemidi og penicillin V, sem eru lífrænir sýrur sem geta hamlað pípluseytingu metotrexats. Einnig hefur hugsanlegri milliverkan verið lýst eftir samsetningu metotrexats og mezlocillins sem og einu tilfelli vegna samsetningar metotrexats og amoxicillins.",
+      "children": []
+    },
+    "4.6": {
+      "number": "4.6",
+      "parent": "4",
+      "heading": "4.6 Meðganga og brjóstagjóf",
+      "title": "Meðganga og brjóstagjóf",
+      "canonical_key": "pregnancy_lactation_fertility",
+      "text": "Meðganga: Umfangsmiklar klínískar rannsóknir gefa til kynna að fenoximetylpenicillin auki ekki hættuna á fósturskáða.",
+      "children": []
+    },
+    "4.7": {
+      "number": "4.7",
+      "parent": "4",
+      "heading": "4.7 Áhrif á hæfni til aksturs og notkunar véla",
+      "title": "Áhrif á hæfni til aksturs og notkunar véla",
+      "canonical_key": "driving_and_machine_use",
+      "text": "Kávepenin hefur engin áhrif á hæfni til aksturs eða notkunar véla.",
+      "children": []
+    },
+    "4.8": {
+      "number": "4.8",
+      "parent": "4",
+      "heading": "4.8 Aukaverkanir",
+      "title": "Aukaverkanir",
+      "canonical_key": "adverse_reactions",
+      "text": "Gera má ráð fyrir að um 5% sjúklinga sem fá meðferð fái aukaverkanir. Algengastar eru meltingaróþægindi og lausar hægðir.",
+      "children": []
+    },
+    "4.9": {
+      "number": "4.9",
+      "parent": "4",
+      "heading": "4.9 Ofskömmtun",
+      "title": "Ofskömmtun",
+      "canonical_key": "overdose",
+      "text": "Eitrun: Stórir skammtar þolast venjulega vel. Bráð einkenni eru fyrst og fremst vegna ofnæmis. Hætta er á blóðkalíumhækkun við mjög mikla ofskömmtun penicillina á formi kalíumsalta.",
+      "children": []
+    },
+    "5": {
+      "number": "5",
+      "parent": null,
+      "heading": "5. LYFJAFRÆÐILEGAR UPPLÝSINGAR",
+      "title": "Lyfjafræðilegar upplýsingar",
+      "canonical_key": "pharmacological_properties",
+      "text": "Lyfjafræðilegar upplýsingar um lyfið.",
+      "children": [
+        "5.1",
+        "5.2",
+        "5.3"
+      ]
+    },
+    "5.1": {
+      "number": "5.1",
+      "parent": "5",
+      "heading": "5.1 Lyfhrif",
+      "title": "Lyfhrif",
+      "canonical_key": "pharmacodynamic_properties",
+      "text": "Flokkun eftir verkun: Beta-laktam síklalyf, penicillin. ATC flokkur: J 01 CE 02.",
+      "children": []
+    },
+    "5.2": {
+      "number": "5.2",
+      "parent": "5",
+      "heading": "5.2 Lyfjahvörf",
+      "title": "Lyfjahvörf",
+      "canonical_key": "pharmacokinetic_properties",
+      "text": "Fenoximetylpenicillinkalíum er vatnleysanlegt og sírópolið og er frásog um 50%. Eftir stakan 800 mg skammt hjá fullorðnum einstaklingi á fastandi maga fæst hámarksþéttni í sermi 0,5-1 klst. eftir inntöku og er að meðaltali u.p.b. 10 míkróg/ml. Samhliða fæðuneysla dregr úr frásogi og hámarksþéttni í sermi verður lægri. Helmingunartími í sermi er um 30 mínútur og próteínbinding er um 80%. Fenoxymetylpenicillin skilst aðalega út með þvagi þar sem um 30-50% af gefnum skammti finnst á virku formi innan 8 klst.",
+      "children": []
+    },
+    "5.3": {
+      "number": "5.3",
+      "parent": "5",
+      "heading": "5.3 Forklínískar upplýsingar",
+      "title": "Forklínískar upplýsingar",
+      "canonical_key": "preclinical_safety_data",
+      "text": "Engar forklínískar upplýsingar liggja fyrir sem hafa þýðingu hvað varðar öryggi lyfsins fram yfir það sem fram kemur annars staðar í þessari samantekt.",
+      "children": []
+    },
+    "6": {
+      "number": "6",
+      "parent": null,
+      "heading": "6. LYFJAGERÐARFRÆÐILEGAR UPPLÝSINGAR",
+      "title": "Lyfjagerðarfræðilegar upplýsingar",
+      "canonical_key": "pharmaceutical_particulars",
+      "text": "Lyfjagerðarfræðilegar upplýsingar um lyfið.",
+      "children": [
+        "6.1",
+        "6.2",
+        "6.3",
+        "6.4",
+        "6.5",
+        "6.6"
+      ]
+    },
+    "6.1": {
+      "number": "6.1",
+      "parent": "6",
+      "heading": "6.1 Hjálparefni",
+      "title": "Hjálparefni",
+      "canonical_key": "excipients",
+      "text": "Kyrni fyrir 1 ml af dreifu inniheldur: Aspartam, frúktósa (ávaxtasykur), titanvíoxíð (E 171), vatnsfrítt natríumsítrat, natríumsítrat, povidon, bragðefni (kakó og sítróna).",
+      "children": []
+    },
+    "6.2": {
+      "number": "6.2",
+      "parent": "6",
+      "heading": "6.2 Ósamrýmanleiki",
+      "title": "Ósamrýmanleiki",
+      "canonical_key": "incompatibilities",
+      "text": "Á ekki við.",
+      "children": []
+    },
+    "6.3": {
+      "number": "6.3",
+      "parent": "6",
+      "heading": "6.3 Geymsluþol",
+      "title": "Geymsluþol",
+      "canonical_key": "shelf_life",
+      "text": "2 ár. Geymsluþol mixtúru eftir blöndun er tvær vikur 2-8°C.",
+      "children": []
+    },
+    "6.4": {
+      "number": "6.4",
+      "parent": "6",
+      "heading": "6.4 Sérstakar varúðarreglur við geymslu",
+      "title": "Sérstakar varúðarreglur við geymslu",
+      "canonical_key": "special_precautions_for_storage",
+      "text": "Geymsluaðstæður lyfsins eftir blöndun; sjá kafla 6.3.",
+      "children": []
+    },
+    "6.5": {
+      "number": "6.5",
+      "parent": "6",
+      "heading": "6.5 Gerð íláts og innihald",
+      "title": "Gerð íláts og innihald",
+      "canonical_key": "container_and_contents",
+      "text": "Glerflaska, 60 ml og 125 ml.",
+      "children": []
+    },
+    "6.6": {
+      "number": "6.6",
+      "parent": "6",
+      "heading": "6.6 Sérstakar varúðarráðstafanir við förgun",
+      "title": "Sérstakar varúðarráðstafanir við förgun",
+      "canonical_key": "special_precautions_for_disposal",
+      "text": "Kávepenin er afhend apóteki sem mixtúrukyrni fyrir dreifu og á að blanda í apóteku. Dreifuna skal hrista fyrir hverja skömmtun. Engar sérstakar leiðbeiningar um förgun.",
+      "children": []
+    },
+    "7": {
+      "number": "7",
+      "parent": null,
+      "heading": "7. MARKAÐSLEYFISHAFI",
+      "title": "Markaðsleyfishafi",
+      "canonical_key": "marketing_authorisation_holder",
+      "text": "Viatris ApS, Borupvang 1, 2750 Ballerup, Danmörk.",
+      "children": []
+    },
+    "8": {
+      "number": "8",
+      "parent": null,
+      "heading": "8. MARKAÐSLEYFISNÚMER",
+      "title": "Markaðsleyfisnúmer",
+      "canonical_key": "marketing_authorisation_number",
+      "text": "910236 (IS).",
+      "children": []
+    },
+    "9": {
+      "number": "9",
+      "parent": null,
+      "heading": "9. DAGSETNING FYRSTU ÚTGÁFU MARKAÐSLEYFIS/ENDURNÝJUNAR MARKAÐSLEYFIS",
+      "title": "Dagsetning fyrstu útgáfu markaðsleyfis/endurnýjunar markaðsleyfis",
+      "canonical_key": "first_authorisation_or_renewal_date",
+      "text": "Dagsetning fyrstu útgáfu markaðsleyfis: 9. júní 1992. Nýjasta dagsetning endurnýjunar markaðsleyfis: 11. apríl 2011.",
+      "children": []
+    },
+    "10": {
+      "number": "10",
+      "parent": null,
+      "heading": "10. DAGSETNING ENDURSKÓÐUNAR TEXTANS",
+      "title": "Dagsetning endurskóðunar textans",
+      "canonical_key": "revision_date",
+      "text": "1. maí 2024.",
+      "children": []
+    }
+  },
+  "validation_report": {
+    "detection_method": "mistral_ocr",
+    "num_sections": 28,
+    "sections_detected": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "4.1",
+      "4.2",
+      "4.3",
+      "4.4",
+      "4.5",
+      "4.6",
+      "4.7",
+      "4.8",
+      "4.9",
+      "5",
+      "5.1",
+      "5.2",
+      "5.3",
+      "6",
+      "6.1",
+      "6.2",
+      "6.3",
+      "6.4",
+      "6.5",
+      "6.6",
+      "7",
+      "8",
+      "9",
+      "10"
+    ]
+  }
+}

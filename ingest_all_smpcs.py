@@ -24,13 +24,16 @@ logger = logging.getLogger(__name__)
 
 def scan_pdf_files(source_dir: Path) -> List[Path]:
     """
-    Scan directory for PDF files (case-insensitive).
+    Scan directory for PDF files with "SMPC" in filename (case-insensitive).
+    
+    Only processes files that contain "SMPC" in the filename to target
+    SmPC documents specifically.
     
     Args:
         source_dir: Directory to scan
         
     Returns:
-        List of PDF file paths
+        List of PDF file paths containing "SMPC" in filename
     """
     pdf_files = []
     if not source_dir.exists():
@@ -38,10 +41,12 @@ def scan_pdf_files(source_dir: Path) -> List[Path]:
         return pdf_files
     
     for file_path in source_dir.iterdir():
-        if file_path.is_file() and file_path.suffix.lower() == '.pdf':
+        if (file_path.is_file() and 
+            file_path.suffix.lower() == '.pdf' and
+            'smpc' in file_path.name.lower()):
             pdf_files.append(file_path)
     
-    logger.info(f"Found {len(pdf_files)} PDF files in {source_dir}")
+    logger.info(f"Found {len(pdf_files)} SMPC PDF files in {source_dir}")
     return pdf_files
 
 
@@ -71,7 +76,12 @@ def process_smpc_pdf(
     
     try:
         # Step 1: Parse PDF to structured JSON
-        smpc_data = build_smpc_json(str(pdf_path))
+        # Auto-use Mistral OCR for files with "SMPC" in name
+        use_mistral = 'smpc' in pdf_path.name.lower()
+        smpc_data = build_smpc_json(
+            str(pdf_path),
+            use_mistral_ocr=use_mistral
+        )
         drug_id = smpc_data.get("drug_id", pdf_path.stem)
         
         # Step 2: Validate SmPC structure
@@ -139,13 +149,14 @@ def process_smpc_pdf(
         }
 
 
-def main(dry_run: bool = False, clear_existing: bool = False) -> None:
+def main(dry_run: bool = False, clear_existing: bool = False, max_files: int = None) -> None:
     """
     Main ingestion function.
     
     Args:
         dry_run: If True, validate but don't save or index
         clear_existing: If True, clear vector store before ingestion
+        max_files: Maximum number of files to process (None = process all)
     """
     logger.info("Starting SmPC ingestion process")
     
@@ -171,6 +182,14 @@ def main(dry_run: bool = False, clear_existing: bool = False) -> None:
     if not pdf_files:
         logger.warning("No PDF files found to process")
         return
+    
+    # Limit to max_files if specified
+    total_found = len(pdf_files)
+    if max_files is not None and max_files > 0:
+        pdf_files = pdf_files[:max_files]
+        logger.info(f"Limiting processing to first {len(pdf_files)} files (out of {total_found} found)")
+    else:
+        logger.info(f"Processing all {total_found} files")
     
     # Process each PDF
     results = {
@@ -238,7 +257,13 @@ if __name__ == "__main__":
         action="store_true",
         help="Clear vector store before ingestion"
     )
+    parser.add_argument(
+        "--max-files",
+        type=int,
+        default=None,
+        help="Maximum number of files to process (default: process all)"
+    )
     
     args = parser.parse_args()
     
-    main(dry_run=args.dry_run, clear_existing=args.clear)
+    main(dry_run=args.dry_run, clear_existing=args.clear, max_files=args.max_files)

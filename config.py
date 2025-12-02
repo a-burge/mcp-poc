@@ -26,6 +26,7 @@ class Config:
     # API Keys
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
     OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    MISTRAL_API_KEY: str = os.getenv("MISTRAL_API_KEY", "")
     OPIK_API_KEY: str = os.getenv("OPIK_API_KEY", "")
     OPIK_PROJECT_NAME: str = os.getenv("OPIK_PROJECT_NAME", "mcp-poc")
     

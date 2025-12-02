@@ -1,0 +1,763 @@
+========================================================================================================================
+DETAILED RESULTS - 50 SAMPLE PDFs
+========================================================================================================================
+
+Filename: zessly-epar-product-information_is.pdf
+Is SmPC: YES
+Number of headings: 69
+Headings:
+  0: 0 (0%)
+  1: 1. HEITI LYFS OG ÍKOMULEIÐ(IR)
+  2: 2. AÐFERÐ VIÐ LYFJAGJÖF
+  3: 3. FYRNINGARDAGSETNING
+  4: 4. LOTUNÚMER
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir ... (+59 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Imatinib-Krka-d.d._SmPC.pdf
+Is SmPC: YES
+Number of headings: 54
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+44 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Hypotron_Fylgiseðill.pdf
+Is SmPC: YES
+Number of headings: 6
+Headings:
+  1: 1 Fylgiseðill: Upplýsingar fyrir notanda lyfsins
+  2: 2 Varnaðarorð og varúðarreglur
+  3: 3. Hvernig nota á Hypotron
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5 Ekki skal nota lyfið eftir fyrningardagsetningu sem tilgre
+  6: 6. Pakkningar og aðrar upplýsingar
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Ritalin_SmPC.pdf
+Is SmPC: YES
+Number of headings: 33
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+23 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Kåvepenin_mixtúrukyrni_SmPC.pdf
+Is SmPC: YES
+Number of headings: 28
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Meðganga og brjóstagjöf ... (+18 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Seresto-vet_4,5g_SmPC.pdf
+Is SmPC: YES
+Number of headings: 30
+Headings:
+  1: 1. HEITI DÝRALYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. KLÍNÍSKAR UPPLÝSINGAR
+  3.1: 3.1 Markdýrategundir
+  3.2: 3.2 Ábendingar fyrir notkun hjá markdýrategundum
+  3.3: 3.3 Frábendingar
+  3.4: 3.4 Sérstök varnaðarorð
+  3.5: 3.5 Sérstakar varúðarreglur við notkun
+  3.6: 3.6 Aukaverkanir
+  3.7: 3.7 Notkun á meðgöngu, við mjólkurgjöf og varp ... (+20 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Testogel-(Heilsa)_50mg_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 6
+Headings:
+  1: 1 klukkustund áður en farið er í bað eða sturtu eftir notkun
+  2: 2. Áður en byrjað er að nota Testogel
+  3: 3. Hvernig nota á Testogel
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5. Hvernig geyma á Testogel
+  6: 6. Pakkningar og aðrar upplýsingar
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Advagraf_Heilsa_Fylgiseðill.pdf
+Is SmPC: YES
+Number of headings: 7
+Headings:
+  2: 2. Áður en byrjað er að nota Advagraf
+  3: 3. Hvernig nota á Advagraf
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5. Hvernig geyma á Advagraf
+  6: 6. Pakkningar og aðrar upplýsingar
+  9: 9 með 30, 50 og 100 hörðum forðahylkjum í þynnupakkningum og
+  10: 10 hylkjum á hverju þynnuspjaldi sem til hlífðar er pakkað í
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Trilafon-Dekanoat_SmPC.pdf
+Is SmPC: YES
+Number of headings: 29
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+19 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Haldol_5mgml_SmPC.pdf
+Is SmPC: YES
+Number of headings: 34
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+24 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Lident_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 6
+Headings:
+  1: 1 Fylgiseðill: Upplýsingar fyrir notanda lyfsins
+  2: 2 Ef þú ert ekki viss um hvort eitthvað af ofantöldu eigi vi
+  3: 3 Ef notaður er stærri skammtur en mælt er fyrir um
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5. Hvernig geyma á Lident
+  6: 6. Pakkningar og aðrar upplýsingar
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Quetiapin_MV_fraedsluefni_v01_201909.pdf
+Is SmPC: NO
+Number of headings: 3
+Headings:
+  4: 4 vikur
+  8: 8 vikur
+  12: 12 vikur
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: alecensa-epar-product-information_is.pdf
+Is SmPC: YES
+Number of headings: 62
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. VIRK(T) EFNI
+  3: 3. HJÁLPAREFNI
+  4: 4. LYFJAFORM OG INNIHALD
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+52 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: trevicta-epar-product-information_is.pdf
+Is SmPC: YES
+Number of headings: 62
+Headings:
+  1: 1. HEITI LYFS OG ÍKOMULEIÐ(IR)
+  2: 2. AÐFERÐ VIÐ LYFJAGJÖF
+  3: 3. FYRNINGARDAGSETNING
+  4: 4. LOTUNÚMER
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+52 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: arava-epar-product-information_is.pdf
+Is SmPC: YES
+Number of headings: 39
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. NAFN MARKAÐSLEYFISHAFA
+  3: 3. FYRNINGARDAGSETNING
+  4: 4. LOTUNÚMER
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+29 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Levonorgestrel_ABECE_Heilsa_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 6
+Headings:
+  1: 1 Fylgiseðill: Upplýsingar fyrir notanda lyfsins
+  2: 2 Varnaðarorð og varúðarreglur
+  3: 3. Hvernig nota á Levonorgestrel ABECE
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5. Hvernig geyma á Levonorgestrel ABECE
+  6: 6. Pakkningar og aðrar upplýsingar
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Zantel_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 16
+Headings:
+  1: 1 töflu á hver 10 kg á dag í 2 daga).
+  2: 2. Innihaldslýsing
+  3: 3. Markdýrategundir
+  4: 4. Ábendingar fyrir notkun
+  5: 5. Frábendingar
+  6: 6. Sérstök varnaðarorð
+  7: 7. Aukaverkanir
+  8: 8. Skammtar fyrir hverja dýrategund, íkomuleiðir og aðferð v
+  9: 9. Leiðbeiningar um rétta lyfjagjöf
+  10: 10. Biðtími fyrir afurðanýtingu ... (+6 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Oftagel_stakskammta_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 6
+Headings:
+  1: 1. Togið varlega niður neðra augnlok augans sem þarfnast með
+  2: 2. Snúið stakskammtaílátinu á hvolf. Kreistið þar til 1 drop
+  3: 3 Ef gleymist að nota Oftagel
+  4: 4 Lýsing á útliti Oftagel og pakkningastærðir
+  5: 5. Hvernig geyma á Oftagel
+  6: 6. Pakkningar og aðrar upplýsingar
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Exelon_Heilsa_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 8
+Headings:
+  2: 2. Áður en byrjað er að nota Exelon
+  3: 3. Hvernig nota á Exelon
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5 cm2 og inniheldur 9 mg af rivastigmini.
+  6: 6. Pakkningar og aðrar upplýsingar
+  10: 10 cm2 og inniheldur 18 mg af rivastigmini.
+  30: 30 sekúndur, með lófanum, til að tryggja að jaðrarnir límist
+  48: 48 klukkustunda eftir að forðaplásturinn hefur verið fjarlæg
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Ciprofloxacin-Alvogen_Fylgisedill.pdf
+Is SmPC: NO
+Number of headings: 6
+Headings:
+  1: 1 – Nota eingöngu sýklalyf þegar þau eru gefin samkvæmt lyfs
+  2: 2 – Fara nákvæmlega eftir fyrirmælum.
+  3: 3 – Aldrei að nota sýklalyf sem gengur af án lyfseðils, jafn
+  4: 4 - Ekki gefa öðrum sýklalyf sem er ætlað þér, hugsanlega er
+  5: 5 – Þegar meðferð er lokið skal skila lyfjaleifum í apótek t
+  6: 6. Pakkningar og aðrar upplýsingar
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Novocillin_LC_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 16
+Headings:
+  1: 1. HEITI OG HEIMILISFANG MARKAÐSLEYFISHAFA OG ÞESS FRAMLEIÐA
+  2: 2. HEITI DÝRALYFS
+  3: 3. VIRK(T) INNIHALDSEFNI OG ÖNNUR INNIHALDSEFNI
+  4: 4. ÁBENDING(AR)
+  5: 5. FRÁBENDINGAR
+  6: 6. AUKAVERKANIR
+  7: 7. DÝRATEGUND(IR)
+  8: 8. SKAMMTAR FYRIR HVERJA DÝRATEGUND, ÍKOMULEIÐ(IR) OG AÐFERÐ
+  9: 9. LEIÐBEININGAR UM RÉTTA LYFJAGJÖF
+  10: 10. BIÐTÍMI FYRIR AFURÐANÝTINGU ... (+6 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Ondansetron_Fresenius_Kabi_SmPC.pdf
+Is SmPC: YES
+Number of headings: 34
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+24 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Escitalopram_Bluefish_SmPC.pdf
+Is SmPC: YES
+Number of headings: 28
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+18 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Dabigatran_etexilate_Teva_Fylgibref_fyrir_heilbrigdisstarfsmenn.pdf
+Is SmPC: NO
+Number of headings: 0
+Headings:
+  
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: meloxidolor-epar-product-information_is.pdf
+Is SmPC: NO
+Number of headings: 0
+Headings:
+  
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Hydrocortison_med_Terramycin_og_PolymyxinB_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 6
+Headings:
+  1: 1. Upplýsingar um Hydrocortison med Terramycin og Polymyxin 
+  2: 2. Áður en byrjað er að nota Hydrocortison med Terramycin og
+  3: 3. Hvernig nota á Hydrocortison med Terramycin og Polymyxin 
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5. Hvernig geyma á Hydrocortison med Terramycin og Polymyxin
+  6: 6. Pakkningar og aðrar upplýsingar
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: nimvastid-epar-product-information_is.pdf
+Is SmPC: YES
+Number of headings: 86
+Headings:
+  0: 0 Tilkynning aukaverkana sem grunur er um að tengist lyfinu
+  1: 1. HEITI LYFS
+  2: 2. NAFN MARKAÐSLEYFISHAFA
+  3: 3. FYRNINGARDAGSETNING
+  4: 4. LOTUNÚMER
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir ... (+76 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Oxcarbazepin_Jubilant_fylgiseðill.pdf
+Is SmPC: YES
+Number of headings: 9
+Headings:
+  1: 1 Fylgiseðill: Upplýsingar fyrir notanda lyfsins
+  2: 2. Áður en byrjað er að nota Oxcarbazepine Jubilant
+  3: 3. Hvernig nota á Oxcarbazepine Jubilant
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5. Hvernig geyma á Oxcarbazepine Jubilant
+  6: 6. Pakkningar og aðrar upplýsingar
+  8: 8 Þetta lyf hefur markaðsleyfi í löndum Evrópska efnahagssvæ
+  18: 18. UNKNOWN SECTION
+  18.6: 18.6 mm á lengd og u.þ.b. 8,1 mm breiðar,  með deiliskoru á 
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Etalpha_SmPC.pdf
+Is SmPC: YES
+Number of headings: 28
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+18 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Pregabalin_Medical_Valley_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 7
+Headings:
+  1: 1 Fylgiseðill: Upplýsingar fyrir notanda lyfsins
+  2: 2 Verið getur að læknirinn hafi ávísað lyfinu við öðrum sjúk
+  3: 3. Hvernig nota á Pregabalin Medical Valley
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5. Hvernig geyma á Pregabalin Medical Valley
+  6: 6. Pakkningar og aðrar upplýsingar
+  7: 7 Þegar skammtíma- eða langtímameðferð með Pregabalin Medica
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Vitamin-AD3E_SmPC.pdf
+Is SmPC: YES
+Number of headings: 31
+Headings:
+  1: 1. HEITI DÝRALYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Dýrategundir
+  4.2: 4.2 Ábendingar fyrir tilgreindar dýrategundir
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð fyrir hverja dýrategund
+  4.5: 4.5 Sérstakar varúðarreglur við notkun
+  4.6: 4.6 Aukaverkanir (tíðni og alvarleiki) ... (+21 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Nebido_fylgibref.pdf
+Is SmPC: NO
+Number of headings: 0
+Headings:
+  
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Tegretol_Retard_Lyfjaver_SmPC.pdf
+Is SmPC: YES
+Number of headings: 16
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  5: 5. LYFJAFRÆÐILEGAR UPPLÝSINGAR
+  6: 6. Lyfjagerðarfræðilegar upplýsingar
+  6.1: 6.1 Hjálparefni
+  6.2: 6.2 Ósamrýmanleiki
+  6.3: 6.3 Geymsluþol
+  6.4: 6.4 Sérstakar varúðarreglur við geymslu ... (+6 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Cyclospray_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 18
+Headings:
+  1: 1. Heiti dýralyfs
+  2: 2 hafa meðferðis fylgiseðil eða umbúðir lyfsins.
+  3: 3. Markdýrategundir
+  4: 4 Eurovet Animal Health B.V., Handelsweg 25, 5531 AE Bladel,
+  5: 5. Frábendingar
+  6: 6. Sérstök varnaðarorð
+  7: 7. Aukaverkanir
+  8: 8. Skammtar fyrir hverja dýrategund, íkomuleiðir og aðferð v
+  9: 9. Leiðbeiningar um rétta lyfjagjöf
+  10: 10. Biðtími fyrir afurðanýtingu ... (+8 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Volidax_SmPC.pdf
+Is SmPC: YES
+Number of headings: 39
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+29 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Canidryl_20mg_50mg_Fylgiseðill.pdf
+Is SmPC: YES
+Number of headings: 15
+Headings:
+  1: 1. HEITI OG HEIMILISFANG HANDHAFA MARKAÐSLEYFIS OG ÞESS
+  2: 2. HEITI DÝRALYFS
+  3: 3. VIRK(T) INNIHALDSEFNI OG ÖNNUR INNIHALDSEFNI
+  4: 4. ÁBENDING(AR)
+  5: 5. FRÁBENDINGAR
+  6: 6. AUKAVERKANIR
+  7: 7. DÝRATEGUND
+  8: 8. SKAMMTAR FYRIR HVERJA DÝRATEGUND, ÍKOMULEIÐ(IR) OG AÐFERÐ
+  9: 9. LEIÐBEININGAR UM RÉTTA LYFJAGJÖF
+  10: 10. BIÐTÍMI FYRIR AFURÐANÝTINGU ... (+5 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: fabrazyme-epar-product-information_is.pdf
+Is SmPC: YES
+Number of headings: 49
+Headings:
+  1: 1. HEITI LYFS OG ÍKOMULEIÐ(IR)
+  2: 2. AÐFERÐ VIÐ LYFJAGJÖF
+  3: 3. FYRNINGARDAGSETNING
+  4: 4. LOTUNÚMER
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+39 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Leukeran-SmPC.pdf
+Is SmPC: YES
+Number of headings: 28
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+18 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Pomalidomide_WH_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 9
+Headings:
+  2: 2. Áður en byrjað er að nota Pomalidomide WH
+  3: 3. Hvernig nota á Pomalidomide WH
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5. Hvernig geyma á Pomalidomide WH
+  6: 6. Pakkningar og aðrar upplýsingar
+  9: 9 Tímalengd meðferðar með Pomalidomide WH
+  10: 10 Mjög algengar (geta komið fyrir hjá fleiri en 1 af hverju
+  13: 13 Holland
+  21: 21 dag (3 vikur).
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Ovixan_húðlausn_SmPC.pdf
+Is SmPC: YES
+Number of headings: 28
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+18 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Serdolect_SmPC.pdf
+Is SmPC: YES
+Number of headings: 29
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+19 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: XEOMIN_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 6
+Headings:
+  2: 2 einingar
+  4: 4 einingar
+  8: 8 einingar
+  10: 10 einingar
+  20: 20 einingar
+  50: 50 einingum
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Strepsils_Jordbær_Fylgiseðill.pdf
+Is SmPC: YES
+Number of headings: 6
+Headings:
+  1: 1 munnsogstafla á 2-3 klst. fresti. Ekki skal nota meira en 
+  2: 2 Meðganga
+  3: 3 Notkun handa börnum
+  4: 4 Geymið Strepsils Jordbær Sukkerfri í upprunalegum umbúðum.
+  5: 5. Hvernig geyma á Strepsils Jordbær Sukkerfri
+  6: 6. Pakkningar og aðrar upplýsingar
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: tivicay-epar-product-information_is.pdf
+Is SmPC: YES
+Number of headings: 3
+Headings:
+  2: 2 mínútur
+  4: 4. Hreinsið skömmtunaráhöldin
+  46: 46 (37-134)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: stronghold-epar-product-information_is.pdf
+Is SmPC: NO
+Number of headings: 0
+Headings:
+  
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Peditrace_Novum_Fylgisedill.pdf
+Is SmPC: YES
+Number of headings: 8
+Headings:
+  1: 1 lykja (10 ml)
+  2: 2 Peditrace Novum inniheldur natríum og kalíum
+  3: 3 Virku innihaldsefnin eru:
+  4: 4 Hjá sjúklingum með skertan gallútskilnað getur dregið úr b
+  5: 5 Peditrace Novum má aðeins blanda við önnur næringarefni ef
+  6: 6. Pakkningar og aðrar upplýsingar
+  7: 7 sólarhringa við 2-8°C og síðan í 48 klst. við 20°C-25°C, a
+  20: 20 x 10 ml í pappaöskju
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Abilify_Maintena_Lyfjaver_SmPC.pdf
+Is SmPC: YES
+Number of headings: 20
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  5: 5. LYFJAFRÆÐILEGAR UPPLÝSINGAR
+  6: 6. LYFJAGERÐARFRÆÐILEGAR UPPLÝSINGAR
+  6.1: 6.1 Hjálparefni
+  6.2: 6.2 Ósamrýmanleiki
+  6.3: 6.3 Geymsluþol
+  6.4: 6.4 Sérstakar varúðarreglur við geymslu ... (+10 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Emla_krem_Fylgiseðill.pdf
+Is SmPC: YES
+Number of headings: 9
+Headings:
+  0: 0 til 12 mánaða, oft í tengslum við ofskömmtun.
+  1: 1 túpa með 30 g af kremi
+  2: 2. Losið pappírslagið frá þeim hluta sem skorið er fyrir á þ
+  3: 3 túpur með 5 g af kremi + 8 umbúðir
+  4: 4. Hugsanlegar aukaverkanir
+  5: 5 túpur með 5 g af kremi + 12 umbúðir
+  6: 6. Pakkningar og aðrar upplýsingar
+  9: 9 Markaðsleyfishafi og framleiðandi
+  60: 60 mínútur hjá börnum yngri en 3 mánaða eða lengur en 30 mín
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: Marcain_spinal_tung_SmPC.pdf
+Is SmPC: YES
+Number of headings: 29
+Headings:
+  1: 1. HEITI LYFS
+  2: 2. INNIHALDSLÝSING
+  3: 3. LYFJAFORM
+  4: 4. KLÍNÍSKAR UPPLÝSINGAR
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir
+  4.6: 4.6 Frjósemi, meðganga og brjóstagjöf ... (+19 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+Filename: trazimera-epar-product-information_is.pdf
+Is SmPC: YES
+Number of headings: 71
+Headings:
+  0: 0 Engin virkni eða himnuvirkni í
+  1: 1. HEITI LYFS OG ÍKOMULEIÐ(IR)
+  2: 2. VIRK(T) EFNI
+  3: 3. HJÁLPAREFNI
+  4: 4. LYFJAFORM OG INNIHALD
+  4.1: 4.1 Ábendingar
+  4.2: 4.2 Skammtar og lyfjagjöf
+  4.3: 4.3 Frábendingar
+  4.4: 4.4 Sérstök varnaðarorð og varúðarreglur við notkun
+  4.5: 4.5 Milliverkanir við önnur lyf og aðrar milliverkanir ... (+61 more)
+
+------------------------------------------------------------------------------------------------------------------------
+
+
+========================================================================================================================
+SUMMARY STATISTICS
+========================================================================================================================
+Total files analyzed: 50
+Valid SmPC files: 44 (88.0%)
+Invalid/Non-SmPC files: 6 (12.0%)
+Errors: 0 (0.0%)
