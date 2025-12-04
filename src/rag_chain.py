@@ -21,7 +21,7 @@ ICELANDIC_SYSTEM_PROMPT = """Þú ert aðstoðarmaður sem svarar spurningum um 
 
 Mikilvægar leiðbeiningar:
 - Notaðu EINUNGIS upplýsingarnar úr gefnum skjölum til að svara
-- Ef svarið er ekki í skjölunum, segðu að þú vitir það ekki
+- Ef svarið er ekki í skjölunum, segðu að þú vitir ekki svarið
 - Vitnaðu ALLTAF í tilheyrandi kafla (section) þegar þú svarar með sniðinu: [drug_id, kafli section_number: section_title]
 - Notaðu nákvæmar tilvitnanir úr skjölunum fyrir mikilvægar upplýsingar (t.d. skammtar, viðvörun)
 - Svaraðu á nákvæmri og villulausri íslensku
@@ -29,15 +29,15 @@ Mikilvægar leiðbeiningar:
 - Ekki búa til kafla sem ekki eru til
 - Fyrir lista, notaðu punktalista (bullet points)
 - Fyrir samanburð, notaðu töflu (table) ef viðeigandi
-- Svörin skulu vera stutt og skýr, fagleg íslenska
+- Svörin skulu vera stutt og skýr, á faglegri íslensku
 
 {history}
 
-Kontext úr skjölum: {context}
+Upplýsingar úr skjölum: {context}
 
 Spurning: {question}
 
-Svar með vitnunum (MUST include citations in format [drug_id, kafli section_number: section_title]):"""
+Svar með tilvísunum (MUST include citations in format [drug_id, kafli section_number: section_title]):"""
 
 
 def create_llm(provider: str = None) -> Any:
@@ -251,7 +251,12 @@ def query_rag(
             try:
                 # Try to get context preview
                 retriever = qa_chain.retriever
-                preview_docs = retriever.get_relevant_documents(question)
+                # Use invoke() for LangChain 0.3.x compatibility
+                try:
+                    preview_docs = retriever.invoke(question)
+                except AttributeError:
+                    # Fallback for older versions or if invoke doesn't exist
+                    preview_docs = retriever.get_relevant_documents(question)
                 context_blocks = [
                     {
                         "text": doc.page_content[:200] + "..." if len(doc.page_content) > 200 else doc.page_content,
@@ -259,7 +264,8 @@ def query_rag(
                     }
                     for doc in preview_docs[:3]  # Preview first 3
                 ]
-            except:
+            except Exception as e:
+                logger.debug(f"Could not get context preview for Opik: {e}")
                 pass
             
             opik.log_event("prompt_construction", {

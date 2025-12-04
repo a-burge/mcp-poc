@@ -129,7 +129,7 @@ def extract_drug_name(text: str) -> str:
 def chunk_document(
     document: PDFDocument,
     chunk_size: int = 300,
-    chunk_overlap: int = 0
+    chunk_overlap: int = 50
 ) -> List[Chunk]:
     """
     Chunk document using section-based approach.
@@ -140,7 +140,7 @@ def chunk_document(
     Args:
         document: PDFDocument to chunk
         chunk_size: Target chunk size in characters
-        chunk_overlap: Overlap between chunks (should be 0 for sections)
+        chunk_overlap: Overlap between chunks
         
     Returns:
         List of Chunk objects with metadata
@@ -256,6 +256,7 @@ def chunk_smpc_json(
     version_hash = smpc_data.get("version_hash", "")
     extracted_at = smpc_data.get("extracted_at", "")
     sections = smpc_data.get("sections", {})
+    atc_codes = smpc_data.get("atc_codes", [])  # ATC codes from enriched JSON
     
     logger.info(f"Chunking SmPC JSON for drug: {drug_id}")
     
@@ -332,6 +333,7 @@ def chunk_smpc_json(
                         "source": source_pdf,
                         "medication_name": drug_id,
                         "sub_section": i + 1,
+                        "atc_codes": atc_codes,  # Add ATC codes to metadata
                     }
                 ))
     

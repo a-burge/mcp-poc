@@ -76,11 +76,12 @@ def process_smpc_pdf(
     
     try:
         # Step 1: Parse PDF to structured JSON
-        # Auto-use Mistral OCR for files with "SMPC" in name
-        use_mistral = 'smpc' in pdf_path.name.lower()
+        # Use Gemini parser as default for SmPC files (better blocks-based extraction)
+        # Falls back to Mistral OCR or PyMuPDF if needed
+        use_gemini = 'smpc' in pdf_path.name.lower()
         smpc_data = build_smpc_json(
             str(pdf_path),
-            use_mistral_ocr=use_mistral
+            use_gemini_parser=use_gemini
         )
         drug_id = smpc_data.get("drug_id", pdf_path.stem)
         
@@ -149,7 +150,7 @@ def process_smpc_pdf(
         }
 
 
-def main(dry_run: bool = False, clear_existing: bool = False, max_files: int = None) -> None:
+def main(dry_run: bool = False, clear_existing: bool = False, max_files: int = None, source_dir: Path = None) -> None:
     """
     Main ingestion function.
     
@@ -157,13 +158,18 @@ def main(dry_run: bool = False, clear_existing: bool = False, max_files: int = N
         dry_run: If True, validate but don't save or index
         clear_existing: If True, clear vector store before ingestion
         max_files: Maximum number of files to process (None = process all)
+        source_dir: Source directory to scan for PDFs (default: Config.RAW_SOURCE_DOCS_DIR)
     """
     logger.info("Starting SmPC ingestion process")
     
     # Ensure directories exist
     Config.ensure_directories()
     
-    source_dir = Config.RAW_SOURCE_DOCS_DIR
+    if source_dir is None:
+        source_dir = Config.RAW_SOURCE_DOCS_DIR
+    else:
+        source_dir = Path(source_dir)
+    
     structured_dir = Config.STRUCTURED_DIR
     
     logger.info(f"Source directory: {source_dir}")
@@ -263,7 +269,18 @@ if __name__ == "__main__":
         default=None,
         help="Maximum number of files to process (default: process all)"
     )
+    parser.add_argument(
+        "--source-dir",
+        type=str,
+        default=None,
+        help="Source directory to scan for PDFs (default: data/raw_source_docs)"
+    )
     
     args = parser.parse_args()
     
-    main(dry_run=args.dry_run, clear_existing=args.clear, max_files=args.max_files)
+    main(
+        dry_run=args.dry_run,
+        clear_existing=args.clear,
+        max_files=args.max_files,
+        source_dir=args.source_dir
+    )

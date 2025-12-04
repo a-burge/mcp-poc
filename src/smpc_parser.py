@@ -748,6 +748,348 @@ def file_md5(path: str) -> str:
 
 
 # ---------------------------------------
+# Ingredients Extraction
+# ---------------------------------------
+
+def extract_ingredients_from_text(text: str, is_active: bool = False) -> List[str]:
+    """
+    Extract ingredient names from section text.
+    
+    Attempts to identify ingredient names by looking for:
+    - Lines that start with ingredient names (often capitalized)
+    - Common patterns like "mg", "g", percentages
+    - Parenthetical E-numbers for excipients
+    
+    Args:
+        text: Section text to extract from
+        is_active: If True, looking for active ingredients; if False, excipients
+        
+    Returns:
+        List of ingredient name strings (without amounts)
+    """
+    if not text or not text.strip():
+        return []
+    
+    ingredients = []
+    lines = text.split('\n')
+    
+    # Common patterns to identify ingredient lines
+    # Active ingredients often have "mg", "g", percentages, or "jafngildir"
+    # Excipients may have E-numbers or be listed simply
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        
+        # Skip header lines and common section text
+        if any(skip in line.lower() for skip in [
+            'innihaldslýsing', 'virk efni', 'hjálparefni', 
+            'sjá lista', 'sjá kafla', 'innihald'
+        ]):
+            continue
+        
+        # Try to extract ingredient name (before amounts/descriptions)
+        # Pattern: ingredient name, optionally followed by amount or description
+        # Remove common prefixes and suffixes
+        
+        # Remove amount patterns (e.g., "23,2 mg", "50 mg/g", "1,54 ml")
+        cleaned = re.sub(r'\d+[.,]\d*\s*(mg|g|ml|%|mg/g|mg/ml)', '', line, flags=re.IGNORECASE)
+        cleaned = re.sub(r'\d+\s*(mg|g|ml|%)', '', cleaned, flags=re.IGNORECASE)
+        
+        # Remove parenthetical content but keep E-numbers for excipients
+        if not is_active:
+            # Keep E-numbers like (E1520), (E321)
+            cleaned = re.sub(r'\([^)]*\)', lambda m: m.group(0) if 'E' in m.group(0) else '', cleaned)
+        else:
+            cleaned = re.sub(r'\([^)]*\)', '', cleaned)
+        
+        # Remove common descriptive text
+        cleaned = re.sub(r'\s*(jafngildir|í hverju|í hverri|í hverjum|sem|er|innan|með)', '', cleaned, flags=re.IGNORECASE)
+        
+        # Extract first meaningful word/phrase (usually the ingredient name)
+        # Split by common separators
+        parts = re.split(r'[,\n]', cleaned)
+        for part in parts:
+            part = part.strip()
+            if not part:
+                continue
+            
+            # Skip if it's just a number or very short
+            if len(part) < 3 or part.isdigit():
+                continue
+            
+            # Skip common non-ingredient words
+            if part.lower() in ['og', 'eða', 'sem', 'er', 'innan', 'með', 'í', 'af', 'fyrir']:
+                continue
+            
+            # Clean up the ingredient name
+            ingredient = part.split()[0] if part.split() else part
+            ingredient = ingredient.strip('.,;:()[]')
+            
+            if len(ingredient) >= 3 and ingredient not in ingredients:
+                ingredients.append(ingredient)
+    
+    return ingredients
+
+
+def normalize_ingredient_name(name: str) -> str:
+    """
+    Normalize ingredient name for deduplication.
+    
+    Removes spaces, converts to lowercase, removes common suffixes.
+    Used to detect if two differently formatted names refer to the same ingredient.
+    
+    Args:
+        name: Ingredient name to normalize
+        
+    Returns:
+        Normalized name string
+    """
+    # Remove E-numbers for normalization (we'll add them back later)
+    normalized = re.sub(r'\s*\(E\d+\)', '', name)
+    # Remove spaces and convert to lowercase
+    normalized = re.sub(r'\s+', '', normalized.lower())
+    # Remove common punctuation
+    normalized = normalized.strip('.,;:()[]')
+    return normalized
+
+
+def create_ingredients_summary(sections: Dict[str, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Create a consolidated ingredients summary section from sections 2 and 6.1.
+    
+    Extracts:
+    - Active ingredients from section 2 (composition)
+    - Excipients from section 6.1 (complete authoritative list)
+    - Excipients mentioned in section 2 (if not already in 6.1)
+    
+    Handles duplicates by:
+    - Normalizing names (case-insensitive, space-insensitive)
+    - Preferring section 6.1 names (more complete/authoritative)
+    - Merging E-numbers when present
+    
+    Args:
+        sections: Dictionary of sections from parsed SmPC
+        
+    Returns:
+        Dictionary representing the ingredients_summary section, or None if
+        section 2 is missing or empty
+    """
+    section_2 = sections.get("2")
+    section_6_1 = sections.get("6.1")
+    
+    # Need at least section 2 (composition) to create summary
+    if not section_2 or not section_2.get("text", "").strip():
+        logger.debug("Section 2 (composition) missing or empty, skipping ingredients summary")
+        return None
+    
+    text_2 = section_2.get("text", "")
+    text_6_1 = section_6_1.get("text", "") if section_6_1 else ""
+    
+    active_ingredients = []
+    excipients = []  # List of ingredient name strings
+    excipients_normalized = {}  # Map: normalized_name -> full_name (for deduplication)
+    
+    # Extract active ingredients from section 2
+    # Active ingredients are usually mentioned before "Hjálparefni" marker
+    lines_2 = text_2.split('\n')
+    found_excipient_marker = False
+    
+    for line in lines_2:
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+        
+        line_lower = line_stripped.lower()
+        
+        # Check for excipient section marker
+        if 'hjálparefni' in line_lower or 'sjá lista yfir öll hjálparefni' in line_lower:
+            found_excipient_marker = True
+            continue
+        
+        # Before excipient marker: look for active ingredients
+        if not found_excipient_marker:
+            # Pattern: "X mg af [ingredient name]" or "[ingredient name] (X%)"
+            # Remove amounts and extract ingredient name
+            # Example: "23,2 mg af díklófenaktvíetýlamíni" -> "díklófenaktvíetýlamíni"
+            
+            # Try to find pattern: "mg af [ingredient]" or "g af [ingredient]"
+            match = re.search(r'(?:mg|g)\s+af\s+([a-záéíóúýþæö]+)', line_lower)
+            if match:
+                ingredient = match.group(1).strip()
+                if len(ingredient) >= 3 and ingredient not in active_ingredients:
+                    active_ingredients.append(ingredient)
+            else:
+                # Alternative: look for ingredient name followed by percentage or "jafngildir"
+                # Remove common words and amounts
+                cleaned = re.sub(r'\d+[.,]\d*\s*(mg|g|ml|%|mg/g|mg/ml)', '', line_stripped, flags=re.IGNORECASE)
+                cleaned = re.sub(r'\([^)]*\)', '', cleaned)  # Remove parentheticals
+                cleaned = re.sub(r'\s+(jafngildir|sem|er|innan|í|af|fyrir|gramm|eitt)', '', cleaned, flags=re.IGNORECASE)
+                cleaned = cleaned.strip('.,;:()[]')
+                
+                # Extract first substantial word (likely ingredient name)
+                words = cleaned.split()
+                for word in words:
+                    word_clean = word.strip('.,;:()[]')
+                    # Skip if too short, is a number, or common word
+                    if (len(word_clean) >= 5 and 
+                        not word_clean.isdigit() and
+                        word_clean.lower() not in ['innihaldslýsing', 'innihald', 'voltaren'] and
+                        word_clean not in active_ingredients):
+                        active_ingredients.append(word_clean)
+                        break
+        
+        # After excipient marker: extract excipients mentioned in section 2
+        # Only add if not already in section 6.1 (to avoid duplicates)
+        else:
+            # Pattern: "X mg af [ingredient] (E####)" or similar
+            e_number_match = re.search(r'\(E\d+\)', line_stripped)
+            e_number = e_number_match.group(0) if e_number_match else ""
+            
+            # Extract ingredient name
+            cleaned = re.sub(r'\d+[.,]\d*\s*(mg|g|ml|%|mg/g)', '', line_stripped, flags=re.IGNORECASE)
+            
+            # Handle parenthetical content (may contain sub-ingredients)
+            paren_match = re.search(r'\(([^)]+)\)', cleaned)
+            if paren_match and 'ilmefni' in line_lower:
+                # Special case: "ilmefni (ingredient1, ingredient2, ...)"
+                sub_ingredients = [s.strip() for s in paren_match.group(1).split(',')]
+                for sub_ing in sub_ingredients:
+                    if len(sub_ing) >= 3:
+                        normalized = normalize_ingredient_name(sub_ing)
+                        # Only add if not already in section 6.1 list
+                        if normalized not in excipients_normalized:
+                            excipients.append(sub_ing)
+                            excipients_normalized[normalized] = sub_ing
+            
+            # Extract main ingredient name
+            cleaned = re.sub(r'\([^)]*\)', '', cleaned)
+            cleaned = re.sub(r'\s+(í|af|hverju|grammi|hlaupi)', '', cleaned, flags=re.IGNORECASE)
+            cleaned = cleaned.strip('.,;:()[]')
+            
+            words = cleaned.split()
+            if words:
+                ingredient = words[0].strip('.,;:()[]')
+                if len(ingredient) >= 3:
+                    if e_number:
+                        ingredient = f"{ingredient} {e_number}"
+                    
+                    # Check for duplicates using normalized name
+                    normalized = normalize_ingredient_name(ingredient)
+                    if normalized not in excipients_normalized:
+                        # Not in section 6.1, add it (section 2 may have additional info)
+                        excipients.append(ingredient)
+                        excipients_normalized[normalized] = ingredient
+                    else:
+                        # Already exists from section 6.1, but check if we need to merge E-number
+                        existing = excipients_normalized[normalized]
+                        if e_number and f"({e_number})" not in existing:
+                            # Update existing entry with E-number from section 2
+                            idx = excipients.index(existing)
+                            excipients[idx] = f"{existing} {e_number}"
+                            excipients_normalized[normalized] = excipients[idx]
+    
+    # Extract excipients from section 6.1 FIRST (authoritative complete list)
+    # This ensures we use the most complete/authoritative names
+    if text_6_1:
+        lines_6_1 = text_6_1.split('\n')
+        for line in lines_6_1:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Skip header text
+            if any(skip in line.lower() for skip in ['hjálparefni', 'innihald']):
+                continue
+            
+            # Extract ingredient name (may include E-number in parentheses)
+            e_number_match = re.search(r'\(E\d+\)', line)
+            e_number = e_number_match.group(0) if e_number_match else ""
+            
+            # Handle parenthetical content for complex ingredients
+            # Example: "Eukalyptusolía (bensýlalkóhól, sítrónellól, ...)"
+            paren_match = re.search(r'\(([^)]+)\)', line)
+            if paren_match and not e_number:
+                # Extract sub-ingredients from parentheses
+                sub_ingredients = [s.strip() for s in paren_match.group(1).split(',')]
+                for sub_ing in sub_ingredients:
+                    if len(sub_ing) >= 3:
+                        normalized = normalize_ingredient_name(sub_ing)
+                        if normalized not in excipients_normalized:
+                            excipients.append(sub_ing)
+                            excipients_normalized[normalized] = sub_ing
+            
+            # Extract main ingredient name
+            cleaned = re.sub(r'\([^)]*\)', '', line)
+            cleaned = cleaned.strip('.,;:()[]')
+            
+            if cleaned:
+                # Use full cleaned line as ingredient name (preserves formatting)
+                ingredient = cleaned.strip('.,;:()[]')
+                
+                if len(ingredient) >= 3:
+                    # Add E-number if present
+                    if e_number:
+                        ingredient = f"{ingredient} {e_number}"
+                    
+                    # Check for duplicates using normalized name
+                    normalized = normalize_ingredient_name(ingredient)
+                    if normalized not in excipients_normalized:
+                        excipients.append(ingredient)
+                        excipients_normalized[normalized] = ingredient
+                    else:
+                        # If duplicate found, prefer the section 6.1 version (already stored)
+                        # But merge E-numbers if the new one has one
+                        existing = excipients_normalized[normalized]
+                        if e_number and f"({e_number})" not in existing:
+                            # Update existing entry with E-number
+                            idx = excipients.index(existing)
+                            excipients[idx] = f"{existing} {e_number}"
+                            excipients_normalized[normalized] = excipients[idx]
+    
+    # Build summary text
+    summary_lines = []
+    summary_lines.append("Yfirlit innihaldsefna:")
+    summary_lines.append("")
+    
+    if active_ingredients:
+        summary_lines.append("Virk efni:")
+        for ing in active_ingredients:
+            summary_lines.append(f"- {ing}")
+        summary_lines.append("")
+    
+    if excipients:
+        summary_lines.append("Hjálparefni:")
+        for exc in excipients:
+            summary_lines.append(f"- {exc}")
+        summary_lines.append("")
+    
+    summary_lines.append("Sjá nánari upplýsingar í kafla 2 (Innihaldslýsing) og kafla 6.1 (Hjálparefni).")
+    
+    summary_text = "\n".join(summary_lines)
+    
+    # Create section dictionary
+    ingredients_section = {
+        "number": "ingredients_summary",
+        "heading": "Yfirlit innihaldsefna",
+        "canonical_key": "ingredients_summary",
+        "title": "Yfirlit innihaldsefna",
+        "text": summary_text,
+        "parent": None,
+        "children": [],
+        "see_sections": ["2", "6.1"]  # Reference to original sections
+    }
+    
+    logger.info(
+        f"Created ingredients summary: {len(active_ingredients)} active ingredients, "
+        f"{len(excipients)} excipients"
+    )
+    
+    return ingredients_section
+
+
+# ---------------------------------------
 # Top-Level Builder
 # ---------------------------------------
 
@@ -800,7 +1142,8 @@ def build_smpc_json(
     drug_id: Optional[str] = None,
     use_font_detection: bool = True,
     font_size_threshold: float = 1.2,
-    use_mistral_ocr: bool = False
+    use_mistral_ocr: bool = False,
+    use_gemini_parser: bool = False
 ) -> Dict[str, Any]:
     """
     High-level function: parse an SmPC PDF and produce structured JSON.
@@ -810,11 +1153,13 @@ def build_smpc_json(
         drug_id: Optional drug identifier. If not provided, uses the PDF filename
             stem (without extension).
         use_font_detection: If True, try font-based detection first (default: True).
-            Only used when use_mistral_ocr is False.
+            Only used when use_mistral_ocr and use_gemini_parser are False.
         font_size_threshold: Font size threshold multiplier for heading detection (default: 1.2).
-            Only used when use_mistral_ocr is False.
+            Only used when use_mistral_ocr and use_gemini_parser are False.
         use_mistral_ocr: If True, use Mistral OCR API for extraction instead of PyMuPDF
-            (default: False).
+            (default: False). Ignored if use_gemini_parser is True.
+        use_gemini_parser: If True, use Gemini-written parser with blocks-based extraction
+            (default: False). Takes precedence over other parsers.
 
     Returns:
         Dictionary containing:
@@ -839,10 +1184,29 @@ def build_smpc_json(
     if drug_id is None:
         drug_id = pdf_path_obj.stem
 
+    # Route to Gemini parser if requested (takes precedence)
+    if use_gemini_parser:
+        from src.gemini_written_parser import parse_smpc_file
+        result = parse_smpc_file(str(pdf_path_obj))
+        if result is None:
+            raise RuntimeError(f"Failed to parse PDF with Gemini parser: {pdf_path_obj}")
+        # Ensure drug_id matches (in case parse_smpc_file derived it differently)
+        result["drug_id"] = drug_id
+        # Add ingredients summary
+        ingredients_summary = create_ingredients_summary(result.get("sections", {}))
+        if ingredients_summary:
+            result["sections"]["ingredients_summary"] = ingredients_summary
+        return result
+
     # Route to Mistral OCR if requested
     if use_mistral_ocr:
         from src.smpc_extractor_mistral import extract_with_mistral_ocr
-        return extract_with_mistral_ocr(str(pdf_path_obj), drug_id)
+        result = extract_with_mistral_ocr(str(pdf_path_obj), drug_id)
+        # Add ingredients summary
+        ingredients_summary = create_ingredients_summary(result.get("sections", {}))
+        if ingredients_summary:
+            result["sections"]["ingredients_summary"] = ingredients_summary
+        return result
     
     # Existing PyMuPDF path
     raw_text = extract_pdf_text(str(pdf_path_obj))
@@ -857,6 +1221,12 @@ def build_smpc_json(
         f"Parsed {drug_id}: {len(sections)} sections detected using "
         f"{validation_report['detection_method']} method"
     )
+
+    # Add ingredients summary section
+    ingredients_summary = create_ingredients_summary(sections)
+    if ingredients_summary:
+        sections["ingredients_summary"] = ingredients_summary
+        logger.info(f"Added ingredients summary section for {drug_id}")
 
     data = {
         "drug_id": drug_id,

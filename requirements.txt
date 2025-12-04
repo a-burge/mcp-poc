@@ -3,6 +3,7 @@ langchain==0.3.27
 langchain-community==0.3.31
 langchain-google-genai==2.1.12
 langchain-openai==0.3.35
+langgraph>=0.2.20,<0.3
 
 # PDF processing
 pymupdf==1.23.8

@@ -103,11 +103,49 @@ def is_valid_smpc(doc: fitz.Document, filename: str) -> bool:
     logger.warning(f"[{filename}] REJECTED: Could not find 'SAMANTEKT Á EIGINLEIKUM LYFS'. Content snippet: {normalized_text[:200]}...")
     return False
 
+def format_span(span: dict) -> str:
+    """
+    Applies markdown formatting to a span based on font flags and name.
+    
+    Args:
+        span: A span dictionary from PyMuPDF's get_text("dict") output
+        
+    Returns:
+        Formatted text with markdown (bold, italic, underline)
+    """
+    text = span['text']
+    
+    # Simple check for list bullets (often a single character with high font size)
+    if len(text.strip()) == 1 and text.strip() in ['•', 'o', '-', '•']:
+        return f"\n{text}"  # Treat list items as new lines
+    
+    # PyMuPDF font flags (0x02=Italic, 0x04=Bold, 0x100=Underlined)
+    flags = span.get('flags', 0)
+    
+    # Check for font name keywords (more reliable for bold/italic in some PDFs)
+    font_name = span.get('font', '').lower()
+    
+    is_bold = (flags & 0x04) or ('bold' in font_name) or ('black' in font_name)
+    is_italic = (flags & 0x02) or ('italic' in font_name) or ('oblique' in font_name)
+    is_underlined = (flags & 0x100)
+    
+    # Apply tags (order matters: inner tags first)
+    if is_underlined:
+        text = f"<u>{text}</u>"
+    if is_italic:
+        text = f"*{text}*"
+    if is_bold:
+        text = f"**{text}**"
+        
+    return text
+
 def clean_text_content(text_list: List[str]) -> str:
     """Joins a list of strings into a clean block."""
     raw = "\n".join(text_list)
     # Fix simple hyphenation (Word- \nbreak -> Wordbreak)
     fixed = re.sub(r'-\s*\n\s*', '', raw)
+    # Condense multiple newlines (paragraph separation)
+    fixed = re.sub(r'\n\s*\n', '\n\n', fixed)
     return fixed.strip()
 
 def extract_special_considerations_from_section_10(section_10_text: str) -> Optional[str]:
@@ -176,14 +214,22 @@ def parse_smpc_file(file_path: str) -> Optional[Dict[str, Any]]:
 
     # --- VALIDATION STEP ---
     if not is_valid_smpc(doc, filename):
+        total_pages_count = len(doc)
         doc.close()
         return {
             "drug_id": filename.replace(".pdf", ""),
             "source_pdf": file_path,
             "version_hash": get_md5_hash(file_path),
-            "extracted_at": datetime.datetime.now().isoformat(),
+            "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "sections": {},
             "error": "Document validation failed (Not an SmPC)",
-            "special_considerations": None
+            "special_considerations": None,
+            "validation_report": {
+                "detection_method": "pymupdf_blocks_validation_failed",
+                "num_sections": 0,
+                "sections_detected": [],
+                "total_pages": total_pages_count
+            }
         }
 
     # Store total_pages before doc.close() is called
@@ -191,21 +237,32 @@ def parse_smpc_file(file_path: str) -> Optional[Dict[str, Any]]:
 
     # --- EXTRACTION STEP ---
 
-    # We extract blocks to handle layout better than raw text
-    all_lines = []
+    # We extract blocks with dict format to access font information for markdown formatting
+    all_lines = []  # List of tuples: (raw_text, formatted_text)
+    all_blocks = []
+    
     for page in doc:
-        # Sort blocks vertically to ensure we process headers before content
-        blocks = page.get_text("blocks")
-        blocks.sort(key=lambda b: (b[1], b[0])) # Sort by Y (vertical), then X (horizontal)
-
-        for b in blocks:
-            block_text = b[4]
-            # Split block into lines to analyze line-by-line
-            lines = block_text.splitlines()
-            for line in lines:
-                clean_line = line.strip()
-                if clean_line:
-                    all_lines.append(clean_line)
+        blocks = page.get_text("dict", sort=True)['blocks']
+        all_blocks.extend(blocks)
+    
+    # Process blocks to extract lines with both raw and formatted text
+    for block in all_blocks:
+        if block['type'] != 0:  # Skip images (type 1)
+            continue
+        
+        for line in block['lines']:
+            line_text_formatted = ""
+            line_raw_text = ""
+            
+            for span in line['spans']:
+                line_text_formatted += format_span(span)
+                line_raw_text += span['text']
+            
+            line_text_formatted = line_text_formatted.strip()
+            line_raw_text = line_raw_text.strip()
+            
+            if line_raw_text:  # Only add non-empty lines
+                all_lines.append((line_raw_text, line_text_formatted))
 
     sections = {}
     current_section_id = None
@@ -216,12 +273,12 @@ def parse_smpc_file(file_path: str) -> Optional[Dict[str, Any]]:
 
     logger.info(f"[{filename}] analyzing {len(all_lines)} text lines...")
 
-    for i, line in enumerate(all_lines):
+    for i, (line_raw, line_formatted) in enumerate(all_lines):
 
         # Regex to catch "1." or "4.1" or "4.1." at start of line
         # We verify if it is a section by checking the REST of the line OR the NEXT line
-        match_num = re.match(r"^(\d{1,2}(\.\d)?)\.?$", line) # Matches JUST a number like "1." or "4.1"
-        match_full = re.match(r"^(\d{1,2}(\.\d)?)\.?\s+(.+)", line) # Matches "1. HEITI LYFS"
+        match_num = re.match(r"^(\d{1,2}(\.\d)?)\.?$", line_raw)  # Matches JUST a number like "1." or "4.1"
+        match_full = re.match(r"^(\d{1,2}(\.\d)?)\.?\s+(.+)", line_raw)  # Matches "1. HEITI LYFS"
 
         detected_section = None
 
@@ -243,13 +300,11 @@ def parse_smpc_file(file_path: str) -> Optional[Dict[str, Any]]:
             if sec_num in SECTION_MAP:
                 # Look ahead to next line
                 if i + 1 < len(all_lines):
-                    next_line = all_lines[i+1].strip()
+                    next_line_raw = all_lines[i+1][0].strip()  # Get raw text from next line
                     keywords = SECTION_MAP[sec_num]["keywords"]
-                    if any(k.upper() in next_line.upper() for k in keywords):
+                    if any(k.upper() in next_line_raw.upper() for k in keywords):
                         detected_section = sec_num
-                        logger.debug(f"[{filename}] Found Split Header: {sec_num} -> {next_line}")
-                        # We skip the next line in the text accumulation since it's part of the header
-                        # Note: logic handled below by 'continue'
+                        logger.debug(f"[{filename}] Found Split Header: {sec_num} -> {next_line_raw}")
 
         # --- PROCESSING STATE MACHINE ---
 
@@ -265,21 +320,11 @@ def parse_smpc_file(file_path: str) -> Optional[Dict[str, Any]]:
             # Metadata for new section
             sections[current_section_id] = {
                 "number": current_section_id,
-                "heading": line, # capture the raw line
+                "heading": line_raw,  # capture the raw line for heading
                 "canonical_key": SECTION_MAP[current_section_id]["key"],
                 "title": SECTION_MAP[current_section_id]["keywords"][0].capitalize(),
                 "text": ""
             }
-
-            # If it was a split header, we consumed the number 'line',
-            # but we also need to consume the 'next_line' so it doesn't end up in the text body.
-            # However, the loop will naturally hit the next line.
-            # To avoid adding the title as body text, we need a flag or check.
-            # Optimization: We let the next iteration handle the text, but we flag it as "header_continuation"
-            # Actually, simpler approach: In Case B, we identified it.
-            # We can set a flag `skip_next` but python iterators are tricky.
-            # Instead, let's allow the Title to enter the buffer? No, we want clean text.
-            # Let's just check if the *current* line is a Keyword Title line.
 
         else:
             # Check if this line is actually the second part of a split header
@@ -287,14 +332,18 @@ def parse_smpc_file(file_path: str) -> Optional[Dict[str, Any]]:
             if current_section_id:
                 keywords = SECTION_MAP[current_section_id]["keywords"]
                 # If the current line is EXACTLY the keyword (fuzzy match), treat it as header part
-                if any(k.upper() == line.upper().strip() for k in keywords):
+                if any(k.upper() == line_raw.upper().strip() for k in keywords):
                      is_header_title = True
                      # Append to heading metadata for clarity
-                     sections[current_section_id]["heading"] += " " + line
+                     sections[current_section_id]["heading"] += " " + line_raw
 
             if not is_header_title and current_section_id:
-                # It is content
-                current_text_buffer.append(line)
+                # It is content - use formatted text for markdown formatting
+                # Add a space before appending unless it's a newline
+                if current_text_buffer and not current_text_buffer[-1].endswith('\n'):
+                    current_text_buffer.append(f"\n{line_formatted}")
+                else:
+                    current_text_buffer.append(line_formatted)
 
     # Save the very last section
     if current_section_id:
@@ -305,6 +354,24 @@ def parse_smpc_file(file_path: str) -> Optional[Dict[str, Any]]:
     # Validation Report
     detected_keys = list(sections.keys())
     logger.info(f"[{filename}] Parsing complete. Found {len(detected_keys)} sections.")
+
+    # Add parent and children fields to sections
+    for section_num, section_data in sections.items():
+        # Calculate parent: "4.1" -> "4", "4" -> None
+        if "." in section_num:
+            parent_num = section_num.rsplit(".", 1)[0]
+            section_data["parent"] = parent_num
+        else:
+            section_data["parent"] = None
+        
+        # Initialize children list
+        section_data["children"] = []
+    
+    # Build children relationships
+    for section_num, section_data in sections.items():
+        parent_num = section_data.get("parent")
+        if parent_num and parent_num in sections:
+            sections[parent_num]["children"].append(section_num)
 
     # Extract special considerations from section 10 if present
     special_considerations = None
@@ -318,44 +385,13 @@ def parse_smpc_file(file_path: str) -> Optional[Dict[str, Any]]:
         "drug_id": filename.replace(".pdf", ""),
         "source_pdf": file_path,
         "version_hash": get_md5_hash(file_path),
-        "extracted_at": datetime.datetime.now().isoformat(),
+        "extracted_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "sections": sections,
         "special_considerations": special_considerations,
-        "validation_report": {
-            "detection_method": "pymupdf_blocks_split_header_aware",
-            "num_sections": len(detected_keys),
-            "sections_detected": detected_keys,
-            "total_pages": total_pages_count # Use the stored variable here
-        }
+            "validation_report": {
+                "detection_method": "pymupdf_spans_markdown_injection",
+                "num_sections": len(detected_keys),
+                "sections_detected": detected_keys,
+                "total_pages": total_pages_count
+            }
     }
-
-# --- EXECUTION MOCKUP ---
-
-def process_directory(directory_path: str, output_file: str):
-    results = []
-
-    if not os.path.exists(directory_path):
-        print("Directory not found.")
-        return
-
-    files_to_process = [f for f in os.listdir(directory_path) if f.endswith('.pdf')]
-
-    for filename in files_to_process:
-        full_path = os.path.join(directory_path, filename)
-        data = parse_smpc_file(full_path)
-        if data:
-            # Only append if we actually got a result (even if it's an error report)
-            results.append(data)
-
-    # Write output
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
-    print(f"\n[COMPLETE] Data written to {output_file}")
-
-# Example Usage:
-# Resolve paths relative to script location, not current working directory
-SCRIPT_DIR = Path(__file__).parent.parent  # Go up one level from src/ to project root
-DATA_DIR = SCRIPT_DIR / "data" / "sample_pdfs"
-OUTPUT_FILE = SCRIPT_DIR / "smpc_final_output.json"
-
-process_directory(str(DATA_DIR), str(OUTPUT_FILE))

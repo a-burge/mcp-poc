@@ -16,7 +16,7 @@ class Config:
     
     # LLM Model Names - Centralized configuration for easy model switching
     LLM_MODELS: dict[str, str] = {
-        "gemini": "gemini-pro",
+        "gemini": "gemini-2.5-flash",
         "gpt5": "gpt-5-mini",
         # Add more models here as needed:
         # "gpt4": "gpt-4-turbo",
@@ -34,8 +34,8 @@ class Config:
     PDF_URL: str = os.getenv("PDF_URL", "https://serlyfjaskra.is/example/smpc.pdf")
     
     # Chunking Configuration
-    CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE", "300"))
-    CHUNK_OVERLAP: int = int(os.getenv("CHUNK_OVERLAP", "0"))
+    CHUNK_SIZE: int = int(os.getenv("CHUNK_SIZE", "1200"))
+    CHUNK_OVERLAP: int = int(os.getenv("CHUNK_OVERLAP", "200"))
     
     # Embedding Model
     EMBEDDING_MODEL: str = os.getenv(
@@ -47,13 +47,24 @@ class Config:
     VECTOR_STORE_PATH: Path = Path(os.getenv("VECTOR_STORE_PATH", "data/vector_store"))
     
     # Retrieval Configuration
-    RETRIEVAL_TOP_K: int = int(os.getenv("RETRIEVAL_TOP_K", "5"))
+    RETRIEVAL_TOP_K: int = int(os.getenv("RETRIEVAL_TOP_K", "12"))  # Final results after re-ranking
+    RETRIEVAL_INITIAL_K: int = int(os.getenv("RETRIEVAL_INITIAL_K", "10"))  # Initial retrieval before re-ranking (optimized: lowered from 20)
+    RETRIEVAL_MULTI_MED_K: int = int(os.getenv("RETRIEVAL_MULTI_MED_K", "10"))  # Per medication for comparison queries
+    RETRIEVAL_MIN_DOCS: int = int(os.getenv("RETRIEVAL_MIN_DOCS", "2"))  # Minimum docs threshold for fallback
+    
+    # Re-ranking Configuration
+    ENABLE_RERANKING: bool = os.getenv("ENABLE_RERANKING", "false").lower() == "true"  # Enable re-ranking (default: False for speed)
+    RERANKING_MODEL: str = os.getenv("RERANKING_MODEL", "gemini-2.5-flash")  # Cheaper/faster model for ranking (default: gemini-2.5-flash)
+    RERANKING_DECISION_THRESHOLD: int = int(os.getenv("RERANKING_DECISION_THRESHOLD", "10"))  # Min docs to consider re-ranking
     
     # Data directories
     DATA_DIR: Path = Path("data")
     PDFS_DIR: Path = DATA_DIR / "pdfs"
     RAW_SOURCE_DOCS_DIR: Path = DATA_DIR / "raw_source_docs"
     STRUCTURED_DIR: Path = DATA_DIR / "structured"
+    ATC_DATA_DIR: Path = DATA_DIR / "atc"
+    ATC_INDEX_PATH: Path = ATC_DATA_DIR / "atc_index.json"
+    DRUG_ATC_MAPPINGS_PATH: Path = ATC_DATA_DIR / "drug_atc_mappings.json"
     
     # MCP Server Configuration
     MCP_SERVER_HOST: str = os.getenv("MCP_SERVER_HOST", "0.0.0.0")
@@ -95,4 +106,5 @@ class Config:
         cls.PDFS_DIR.mkdir(exist_ok=True)
         cls.RAW_SOURCE_DOCS_DIR.mkdir(exist_ok=True)
         cls.STRUCTURED_DIR.mkdir(exist_ok=True)
+        cls.ATC_DATA_DIR.mkdir(exist_ok=True)
         cls.VECTOR_STORE_PATH.mkdir(parents=True, exist_ok=True)

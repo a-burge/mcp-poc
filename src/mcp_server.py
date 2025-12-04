@@ -151,8 +151,12 @@ async def tool_search_smpc_sections(request: SearchRequest) -> Dict[str, Any]:
         else:
             retriever = vector_store_manager.get_retriever()
         
-        # Perform search
-        docs = retriever.get_relevant_documents(request.query)
+        # Perform search (use invoke() for LangChain 0.3.x compatibility)
+        try:
+            docs = retriever.invoke(request.query)
+        except AttributeError:
+            # Fallback for older LangChain versions
+            docs = retriever.get_relevant_documents(request.query)
         
         # Format results
         results = []

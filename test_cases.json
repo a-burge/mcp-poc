@@ -1,0 +1,336 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2025-12-02",
+    "description": "RAG evaluation test cases for SmPC documents",
+    "evaluation_framework": "structured_json",
+    "migration_target": "opik"
+  },
+  "test_cases": [
+    {
+      "id": "test_001",
+      "question": "Hver er munurinn á innihaldsefnum í Voltaren forte og voltaren hlaupi?",
+      "category": "cross_document_comparison",
+      "difficulty": "high",
+      "requires_multiple_documents": true,
+      "expected_medications": [
+        "Voltaren_Forte_SmPC",
+        "Voltaren_hlaup_SmPC"
+      ],
+      "expected_sections": [
+        "2",
+        "6.1"
+      ],
+      "expected_canonical_keys": [
+        "composition",
+        "excipients"
+      ],
+      "answer_format_requirements": {
+        "must_have_tldr": true,
+        "must_have_table": true,
+        "table_structure": {
+          "columns": [
+            "Innihaldsefni",
+            "Voltaren Forte",
+            "Voltaren hlaup",
+            "Sama eða ekki"
+          ],
+          "must_show_similarities": true,
+          "must_highlight_differences": true
+        }
+      },
+      "ground_truth": {
+        "answer_should_contain": [
+          "díklófenak",
+          "23,2 mg",
+          "11,6 mg",
+          "própýlenglýkól",
+          "E1520",
+          "50 mg"
+        ],
+        "answer_should_not_contain": [
+          "sama",
+          "ekkert munur",
+          "eins"
+        ],
+        "key_differences_to_verify": [
+          {
+            "ingredient": "Virk efni - díklófenaktvíetýlamíni",
+            "voltaren_forte": "23,2 mg (jafngildir 20 mg díklófenaknatríum)",
+            "voltaren_hlaup": "11,6 mg (jafngildir 10 mg díklófenaknatríum)",
+            "is_different": true,
+            "difference_type": "concentration"
+          },
+          {
+            "ingredient": "Própýlenglýkól (E1520)",
+            "voltaren_forte": "50 mg/g",
+            "voltaren_hlaup": "50 mg/g",
+            "is_different": false,
+            "difference_type": "same"
+          },
+          {
+            "ingredient": "Bútýlhýdroxýtólúen (E321)",
+            "voltaren_forte": "0,2 mg/g",
+            "voltaren_hlaup": "Ekki til staðar",
+            "is_different": true,
+            "difference_type": "present_in_forte_only"
+          },
+          {
+            "ingredient": "Bensýlbensóat",
+            "voltaren_forte": "Ekki til staðar",
+            "voltaren_hlaup": "1 mg/g",
+            "is_different": true,
+            "difference_type": "present_in_hlaup_only"
+          },
+          {
+            "ingredient": "Ilmefni",
+            "voltaren_forte": "bensýlalkóhól, sítrónellól, kúmarín, d-límónen, evgenól, geraníól, línalól",
+            "voltaren_hlaup": "bensýlalkóhól, sítral, sítrónellól, kúmarín, d-límónen, evgenól, farnesól, geraníól, línalól",
+            "is_different": true,
+            "difference_type": "composition_difference",
+            "note": "Hlaup hefur sítral og farnesól sem Forte hefur ekki"
+          }
+        ],
+        "citations_required": true,
+        "min_citations": 2,
+        "citation_format": "[drug_id, kafli section_number: section_title]",
+        "expected_citation_examples": [
+          "[Voltaren_Forte_SmPC, kafli 2: Innihaldslýsing]",
+          "[Voltaren_hlaup_SmPC, kafli 2: Innihaldslýsing]"
+        ]
+      },
+      "evaluation_criteria": {
+        "retrieval_quality": {
+          "should_retrieve_from_both_documents": true,
+          "should_retrieve_composition_sections": true,
+          "should_retrieve_excipient_sections": false,
+          "min_relevant_chunks": 4
+        },
+        "answer_quality": {
+          "must_compare_both_medications": true,
+          "must_show_all_ingredients": true,
+          "must_distinguish_similarities": true,
+          "must_highlight_differences": true,
+          "must_have_table_format": true,
+          "must_have_tldr_summary": true
+        },
+        "citation_quality": {
+          "must_cite_both_sources": true,
+          "citations_must_be_correct": true,
+          "citations_must_match_format": true
+        },
+        "language_quality": {
+          "must_be_icelandic": true,
+          "must_be_professional": true,
+          "must_be_clear": true
+        }
+      },
+      "manual_evaluation": {
+        "answer_correct": null,
+        "citations_correct": null,
+        "table_format_correct": null,
+        "tldr_present": null,
+        "all_ingredients_listed": null,
+        "differences_clearly_highlighted": null,
+        "similarities_clearly_shown": null,
+        "notes": "",
+        "evaluated_by": null,
+        "evaluated_at": null
+      }
+    },
+    {
+      "id": "test_002",
+      "question": "Hvað þarf kona með barn á brjósti að hafa í huga þegar hún notar Voriconazole?",
+      "category": "safety_information",
+      "difficulty": "medium",
+      "requires_multiple_documents": false,
+      "expected_medications": [
+        "Voriconazole_Normon_SmPC"
+      ],
+      "expected_sections": [
+        "4.6"
+      ],
+      "expected_canonical_keys": [
+        "pregnancy_lactation_fertility"
+      ],
+      "answer_format_requirements": {
+        "must_have_tldr": false,
+        "must_have_table": false,
+        "should_be_direct_answer": true,
+        "should_include_safety_warnings": true
+      },
+      "ground_truth": {
+        "answer_should_contain": [
+          "brjóstagjöf",
+          "hætta",
+          "ekki hefur verið rannsakað",
+          "skilst út í brjóstamjólk",
+          "hætta verður brjóstagjöf"
+        ],
+        "answer_should_not_contain": [
+          "öruggt",
+          "hægt að nota",
+          "engin hætta"
+        ],
+        "key_information_to_verify": [
+          {
+            "point": "Research status",
+            "expected": "Ekki hefur verið rannsakað hvort vórikónazól skilst út í brjóstamjólk",
+            "critical": true
+          },
+          {
+            "point": "Recommendation",
+            "expected": "Hætta verður brjóstagjöf þegar meðferð með vorikónazól hefst",
+            "critical": true
+          },
+          {
+            "point": "Safety level",
+            "expected": "Ekki öruggt - hætta á að lyfið skilst út í brjóstamjólk",
+            "critical": true
+          }
+        ],
+        "citations_required": true,
+        "min_citations": 1,
+        "citation_format": "[drug_id, kafli section_number: section_title]",
+        "expected_citation_examples": [
+          "[Voriconazole_Normon_SmPC, kafli 4.6: Frjósemi]"
+        ]
+      },
+      "evaluation_criteria": {
+        "retrieval_quality": {
+          "should_retrieve_from_correct_document": true,
+          "should_retrieve_pregnancy_lactation_section": true,
+          "min_relevant_chunks": 1
+        },
+        "answer_quality": {
+          "must_address_breastfeeding_specifically": true,
+          "must_include_research_status": true,
+          "must_include_recommendation": true,
+          "must_be_safety_focused": true,
+          "should_not_hallucinate_safety": true
+        },
+        "citation_quality": {
+          "must_cite_section_4_6": true,
+          "citations_must_be_correct": true,
+          "citations_must_match_format": true
+        },
+        "language_quality": {
+          "must_be_icelandic": true,
+          "must_be_professional": true,
+          "must_be_clear": true,
+          "must_be_direct": true
+        }
+      },
+      "manual_evaluation": {
+        "answer_correct": null,
+        "citations_correct": null,
+        "safety_information_complete": null,
+        "no_hallucinations": null,
+        "notes": "",
+        "evaluated_by": null,
+        "evaluated_at": null
+      }
+    }
+  ],
+  "evaluation_metrics": {
+    "retrieval_metrics": {
+      "precision": "Percentage of retrieved chunks that are relevant",
+      "recall": "Percentage of relevant chunks that were retrieved",
+      "f1_score": "Harmonic mean of precision and recall"
+    },
+    "answer_quality_metrics": {
+      "answer_relevance": "Does answer address the question?",
+      "answer_completeness": "Does answer include all required information?",
+      "answer_accuracy": "Is answer factually correct?",
+      "hallucination_detection": "Does answer contain information not in sources?"
+    },
+    "citation_metrics": {
+      "citation_presence": "Are citations present?",
+      "citation_accuracy": "Do citations match actual sources?",
+      "citation_format_compliance": "Do citations follow required format?"
+    },
+    "language_metrics": {
+      "icelandic_quality": "Is Icelandic correct and professional?",
+      "clarity": "Is answer clear and understandable?",
+      "completeness": "Is answer complete?"
+    }
+  },
+  "scoring_rubric": {
+    "test_001": {
+      "retrieval": {
+        "weight": 0.2,
+        "max_score": 20,
+        "criteria": {
+          "retrieves_from_both_documents": 10,
+          "retrieves_composition_sections": 10
+        }
+      },
+      "answer_quality": {
+        "weight": 0.5,
+        "max_score": 50,
+        "criteria": {
+          "has_tldr_summary": 5,
+          "has_table_format": 10,
+          "lists_all_ingredients": 10,
+          "shows_similarities_clearly": 10,
+          "highlights_differences_clearly": 10,
+          "answer_is_accurate": 5
+        }
+      },
+      "citations": {
+        "weight": 0.2,
+        "max_score": 20,
+        "criteria": {
+          "cites_both_sources": 10,
+          "citations_are_correct": 5,
+          "citations_match_format": 5
+        }
+      },
+      "language": {
+        "weight": 0.1,
+        "max_score": 10,
+        "criteria": {
+          "icelandic_quality": 5,
+          "clarity": 5
+        }
+      }
+    },
+    "test_002": {
+      "retrieval": {
+        "weight": 0.2,
+        "max_score": 20,
+        "criteria": {
+          "retrieves_correct_document": 10,
+          "retrieves_section_4_6": 10
+        }
+      },
+      "answer_quality": {
+        "weight": 0.5,
+        "max_score": 50,
+        "criteria": {
+          "addresses_breastfeeding": 15,
+          "includes_research_status": 15,
+          "includes_recommendation": 15,
+          "no_hallucinations": 5
+        }
+      },
+      "citations": {
+        "weight": 0.2,
+        "max_score": 20,
+        "criteria": {
+          "cites_section_4_6": 10,
+          "citations_are_correct": 5,
+          "citations_match_format": 5
+        }
+      },
+      "language": {
+        "weight": 0.1,
+        "max_score": 10,
+        "criteria": {
+          "icelandic_quality": 5,
+          "clarity": 5
+        }
+      }
+    }
+  }
+}
