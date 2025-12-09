@@ -165,10 +165,15 @@ class VectorStoreManager:
         self.embeddings = self._create_embeddings()
         self.vector_store: Optional[Chroma] = None
         self.all_drugs: List[str] = []
+        self._unique_medications: List[str] = []  # Cached unique medications list
         self._initialize_store()
         # Load all drug IDs after store initialization
         self.all_drugs = self.get_all_drug_ids()
+        # Cache unique medications - use all_drugs as they contain the same medication names
+        # This avoids expensive database query on every call to get_unique_medications()
+        self._unique_medications = sorted(list(set(self.all_drugs)))  # Deduplicate and sort
         logger.info(f"Loaded {len(self.all_drugs)} unique drug IDs")
+        logger.info(f"Cached {len(self._unique_medications)} unique medications")
     
     def _create_embeddings(self) -> HuggingFaceEmbeddings:
         """
@@ -388,6 +393,7 @@ class VectorStoreManager:
         
         # Refresh drug list cache after adding chunks
         self.all_drugs = self.get_all_drug_ids()
+        self._unique_medications = sorted(list(set(self.all_drugs)))  # Sync medications cache with deduplication
         
         logger.info(f"Successfully added {len(chunks)} chunks")
     
@@ -409,8 +415,9 @@ class VectorStoreManager:
         # Reinitialize (will create collection with new HNSW parameters)
         self._initialize_store()
         
-        # Reset drug list cache
+        # Reset drug list caches
         self.all_drugs = []
+        self._unique_medications = []
         
         logger.info("Vector store cleared and recreated with proper HNSW parameters")
     
@@ -508,13 +515,26 @@ class VectorStoreManager:
         """
         Get list of unique medication names from the vector store.
         
+        Returns cached list for performance - avoids querying all documents.
+        
         Returns:
             List of unique medication names
         """
+        # Return cached list for performance (populated during __init__)
+        if self._unique_medications:
+            return self._unique_medications
+        
+        # Fallback: use all_drugs if available (same data, different source)
+        if self.all_drugs:
+            self._unique_medications = list(self.all_drugs)
+            return self._unique_medications
+        
+        # Last resort: query the database (slow path, should rarely happen)
         if not self.vector_store:
             return []
         
         try:
+            logger.warning("get_unique_medications: Cache miss, querying database (slow)")
             collection = self.vector_store._collection
             # Get all documents and extract unique medication names
             results = collection.get()
@@ -526,7 +546,8 @@ class VectorStoreManager:
                 if medication_name:
                     medications.add(medication_name)
             
-            return sorted(list(medications))
+            self._unique_medications = sorted(list(medications))
+            return self._unique_medications
         except Exception as e:
             logger.error(f"Error getting unique medications: {e}")
             return []
@@ -817,10 +838,10 @@ class VectorStoreManager:
             base_retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
             return InstrumentedRetriever(base_retriever, medication_filter="Ingredients:None")
         
-        # Lazy import to avoid circular dependencies
+        # Use singleton IngredientsManager for performance (avoids reloading JSON on every call)
         try:
-            from src.ingredients_manager import IngredientsManager
-            ingredients_manager = IngredientsManager()
+            from src.ingredients_manager import get_ingredients_manager
+            ingredients_manager = get_ingredients_manager()
         except Exception as e:
             logger.error(f"Could not load IngredientsManager: {e}")
             # Return empty retriever

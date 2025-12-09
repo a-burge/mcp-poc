@@ -276,8 +276,13 @@ class IngredientsManager:
         """
         Normalize ingredient names consistently with INN conventions.
         
-        Uses the same normalization pipeline as drug IDs plus light INN-specific
-        cleanup for Icelandic inflections (ini/inum endings).
+        Uses the same normalization pipeline as drug IDs plus:
+        - Icelandic→INN character mappings (k→c, s[ei]→c[ei], þ→th)
+        - Light INN-specific cleanup for Icelandic inflections (ini/inum endings)
+        
+        This enables matching:
+        - díklófenak → diclofenac
+        - parasetamól → paracetamol
         
         Args:
             name: Ingredient name (INN name)
@@ -296,10 +301,18 @@ class IngredientsManager:
         s = re.sub(r"[^a-z0-9\s]", " ", s)
         s = re.sub(r"\s+", " ", s).strip()
         
+        # Apply Icelandic → INN character normalization
+        # k → c (diklofenak → diclofenak → diclofenac)
+        s = s.replace('k', 'c')
+        # Soft c: s before e or i → c (parasetamol → paracetamol)
+        s = re.sub(r's([ei])', r'c\1', s)
+        # þ → th (already stripped by diacritics, but handle if present)
+        s = s.replace('þ', 'th')
+        
         # Common Icelandic inflections for antibiotic INNs
-        # Example: diklóxacillín → dikloxacillin
-        #          diklóxacillíni → dikloxacillin
-        #          diklóxacillínum → dikloxacillin
+        # Example: diklóxacillín → dicloxacillin
+        #          diklóxacillíni → dicloxacillin
+        #          diklóxacillínum → dicloxacillin
         s = re.sub(r"(in|ini|inum)$", "", s)
         
         return s

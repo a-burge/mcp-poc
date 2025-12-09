@@ -18,13 +18,34 @@ import unicodedata
 import re
 
 def _norm(s: str) -> str:
-    """Normalize text: lowercase, strip diacritics and punctuation, collapse spaces."""
+    """
+    Normalize text for medication matching.
+    
+    Steps:
+    1. Lowercase and strip diacritics
+    2. Remove punctuation
+    3. Apply Icelandic→INN spelling normalization (k→c, s[ei]→c[ei], þ→th)
+    4. Collapse whitespace
+    
+    This enables matching Icelandic drug names to their INN equivalents:
+    - diklofenak → diclofenac
+    - parasetamól → paracetamol
+    """
     if not s:
         return ""
     s = unicodedata.normalize("NFKD", s).lower()
     s = "".join(c for c in s if not unicodedata.combining(c))
     # remove punctuation
     s = re.sub(r"[^\w\s]", " ", s)
+    
+    # Apply Icelandic → INN normalization for drug name matching
+    # k → c (diklofenak → diclofenak)
+    s = s.replace('k', 'c')
+    # Soft c: s before e or i → c (parasetamol → paracetamol)
+    s = re.sub(r's([ei])', r'c\1', s)
+    # þ → th (already stripped by diacritics, but handle if present)
+    s = s.replace('þ', 'th')
+    
     # collapse whitespace
     s = re.sub(r"\s+", " ", s).strip()
     return s
@@ -42,6 +63,44 @@ def strip_diacritics(s: str) -> str:
     # Optional: make matching accent-insensitive
     nfkd_form = unicodedata.normalize('NFKD', s)
     return "".join(c for c in nfkd_form if not unicodedata.combining(c))
+
+
+def normalize_icelandic_to_inn(s: str) -> str:
+    """
+    Normalize Icelandic drug spelling to INN/Latin equivalents.
+    
+    Icelandic adapts foreign pharmaceutical terms by:
+    - Replacing 'c' with 'k' for hard c sounds: diclofenac → díklófenak
+    - Replacing 'c' with 's' for soft c (before e, i): paracetamol → parasetamól
+    - Replacing 'th' with 'þ': theophylline → þeófyllín
+    - Replacing 'ph' with 'f': phenytoin → fenýtóín
+    
+    This function reverses these adaptations to match INN names in the database.
+    
+    Args:
+        s: Icelandic drug name (already lowercase, diacritics stripped)
+        
+    Returns:
+        Normalized string matching INN/Latin spelling patterns
+    """
+    if not s:
+        return ""
+    
+    # Icelandic → INN mappings (applied in order)
+    # 1. k → c (diklofenak → diclofenak → diclofenac)
+    s = s.replace('k', 'c')
+    
+    # 2. Soft c: s before e or i → c (parasetamol → paracetamol)
+    #    This is the Latin soft-c rule (c before e, i sounds like 's')
+    s = re.sub(r's([ei])', r'c\1', s)
+    
+    # 3. þ → th (þeófyllín → theophyllin)
+    s = s.replace('þ', 'th')
+    
+    # 4. f → ph is risky (too many legitimate 'f's), skip for now
+    #    Could add specific patterns like 'fen' → 'phen' if needed
+    
+    return s
 
 def _get_ingredients_manager():
     """Get IngredientsManager instance (lazy import)."""
@@ -182,6 +241,8 @@ def find_matching_medications(
     Now includes ingredient-based matching for queries like "Hvað er Ibuprofen?"
     where the user asks about an ingredient name rather than a brand name.
     
+    Uses cached all_drugs list for performance (avoids querying all documents).
+    
     Args:
         query: User query text
         vector_store_manager: VectorStoreManager instance
@@ -190,8 +251,8 @@ def find_matching_medications(
     Returns:
         List of matching medication names
     """
-    # Get all available medications
-    available_medications = vector_store_manager.get_unique_medications()
+    # Use cached all_drugs list for performance (avoids slow database query)
+    available_medications = vector_store_manager.all_drugs_list
     
     if not available_medications:
         return []
@@ -208,14 +269,19 @@ def find_matching_medications(
             
             # Filter to only drugs that exist in vector store
             if ingredient_matches:
-                # Normalize drug names for comparison
+                # Normalize drug names for comparison (including Icelandic→INN mapping)
+                def full_normalize(m: str) -> str:
+                    """Apply full normalization including Icelandic→INN."""
+                    n = strip_diacritics(normalize_icelandic(m)).replace("_smpc", "")
+                    return normalize_icelandic_to_inn(n)
+                
                 available_normalized = {
-                    strip_diacritics(normalize_icelandic(m)).replace("_smpc", ""): m
+                    full_normalize(m): m
                     for m in available_medications
                 }
                 
                 for ing_drug in ingredient_matches:
-                    ing_normalized = strip_diacritics(normalize_icelandic(ing_drug))
+                    ing_normalized = full_normalize(ing_drug)
                     # Try exact match
                     if ing_drug in available_medications:
                         matches.append(ing_drug)
@@ -225,8 +291,9 @@ def find_matching_medications(
                     # Try partial match
                     else:
                         for available in available_medications:
-                            if (ing_normalized in normalize_icelandic(available) or 
-                                normalize_icelandic(available) in ing_normalized):
+                            avail_norm = full_normalize(available)
+                            if (ing_normalized in avail_norm or 
+                                avail_norm in ing_normalized):
                                 matches.append(available)
                                 break
                 

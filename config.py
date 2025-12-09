@@ -48,8 +48,8 @@ class Config:
     
     # Retrieval Configuration
     RETRIEVAL_TOP_K: int = int(os.getenv("RETRIEVAL_TOP_K", "12"))  # Final results after re-ranking
-    RETRIEVAL_INITIAL_K: int = int(os.getenv("RETRIEVAL_INITIAL_K", "10"))  # Initial retrieval before re-ranking (optimized: lowered from 20)
-    RETRIEVAL_MULTI_MED_K: int = int(os.getenv("RETRIEVAL_MULTI_MED_K", "10"))  # Per medication for comparison queries
+    RETRIEVAL_INITIAL_K: int = int(os.getenv("RETRIEVAL_INITIAL_K", "12"))  # Initial retrieval before re-ranking (optimized: lowered from 20)
+    RETRIEVAL_MULTI_MED_K: int = int(os.getenv("RETRIEVAL_MULTI_MED_K", "8"))  # Per medication for comparison queries
     RETRIEVAL_MIN_DOCS: int = int(os.getenv("RETRIEVAL_MIN_DOCS", "2"))  # Minimum docs threshold for fallback
     
     # Re-ranking Configuration

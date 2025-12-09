@@ -42,6 +42,16 @@
                     <label for="question">Spurning (á íslensku):</label>
                     <textarea id="question" name="question" rows="4" placeholder="Spyrðu spurningar um lyfjaupplýsingar..." required></textarea>
                 </div>
+                
+                <!-- Suggested query chips -->
+                <div class="query-chips">
+                    <span class="chips-label">Tillögur:</span>
+                    <button type="button" class="query-chip" onclick="handleChipClick('Samanburður á Voltaren og Panodil')">Samanburður á Voltaren og Panodil</button>
+                    <button type="button" class="query-chip" onclick="handleChipClick('Aukaverkanir Tegretol')">Aukaverkanir Tegretol</button>
+                    <button type="button" class="query-chip" onclick="handleChipClick('Er óhætt að taka ibúfen með blóðþrýstingslyfjum?')">Er óhætt að taka ibúfen með...</button>
+                    <button type="button" class="query-chip" onclick="handleChipClick('Hvaða skammtar af Diclofenac eru leyfðir?')">Skammtar Diclofenac</button>
+                </div>
+
                 <div class="form-group">
                     <label for="drug-id">Lyf (valkvætt):</label>
                     <input type="text" id="drug-id" name="drug-id" placeholder="T.d., Tegretol eða Tegretol, Panodil">

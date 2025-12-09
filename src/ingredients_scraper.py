@@ -1,6 +1,7 @@
 """Ingredients index scraper for Icelandic Medicines Agency website."""
 import json
 import logging
+import re
 import sys
 import time
 from pathlib import Path
@@ -173,7 +174,7 @@ class IngredientsScraper:
         letter: str
     ) -> Dict[str, Any]:
         """
-        Scrape all ingredients starting with a specific letter.
+        Scrape all ingredients starting with a specific letter, handling pagination.
         
         Args:
             driver: Selenium WebDriver instance
@@ -185,11 +186,79 @@ class IngredientsScraper:
         """
         try:
             from selenium.webdriver.common.by import By
+        except ImportError:
+            logger.error("Selenium not available in _scrape_letter")
+            return {}
+        
+        all_ingredients: Dict[str, Any] = {}
+        processed_ingredients: set = set()
+        
+        # Scrape first page
+        page_ingredients = self._scrape_current_page(
+            driver, result_grid, letter, processed_ingredients
+        )
+        all_ingredients.update(page_ingredients)
+        
+        # Check for pagination
+        total_pages = self._get_total_pages(driver)
+        
+        if total_pages > 1:
+            logger.info(f"  Letter {letter} has {total_pages} pages")
+            
+            for page_num in range(2, total_pages + 1):
+                # Navigate to the page
+                if not self._navigate_to_page(driver, page_num):
+                    logger.warning(f"  Failed to navigate to page {page_num} for letter {letter}")
+                    continue
+                
+                # Wait for grid to update
+                time.sleep(1.0)
+                
+                # Re-find result grid (DOM may have changed after AJAX update)
+                try:
+                    result_grid = driver.find_element(
+                        By.XPATH,
+                        "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]"
+                    )
+                except Exception as e:
+                    logger.warning(f"  Could not find result grid after navigating to page {page_num}: {e}")
+                    continue
+                
+                # Scrape this page
+                page_ingredients = self._scrape_current_page(
+                    driver, result_grid, letter, processed_ingredients
+                )
+                all_ingredients.update(page_ingredients)
+                logger.info(f"  Page {page_num}: extracted {len(page_ingredients)} ingredients")
+        
+        return all_ingredients
+    
+    def _scrape_current_page(
+        self,
+        driver,
+        result_grid,
+        letter: str,
+        processed_ingredients: set
+    ) -> Dict[str, Any]:
+        """
+        Scrape ingredients from the current page of results.
+        
+        Args:
+            driver: Selenium WebDriver instance
+            result_grid: The main result grid table element
+            letter: The alphabet letter being processed
+            processed_ingredients: Set of already processed ingredient keys (modified in-place)
+            
+        Returns:
+            Dictionary mapping ingredient keys to their data
+        """
+        try:
+            from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
             from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException
         except ImportError:
-            logger.error("Selenium not available in _scrape_letter")
+            logger.error("Selenium not available in _scrape_current_page")
             return {}
         
         ingredients = {}
@@ -202,8 +271,6 @@ class IngredientsScraper:
             rows = result_grid.find_elements(By.XPATH, row_xpath)
             
             logger.debug(f"Found {len(rows)} potential ingredient rows for letter {letter}")
-            
-            processed_ingredients = set()
             
             # Step 1: Collect all ingredient names first (without expanding to avoid stale elements)
             ingredient_names = []
@@ -321,8 +388,114 @@ class IngredientsScraper:
             return ingredients
             
         except Exception as e:
-            logger.warning(f"Error scraping letter {letter}: {e}", exc_info=True)
+            logger.warning(f"Error scraping current page for letter {letter}: {e}", exc_info=True)
             return ingredients
+    
+    def _get_total_pages(self, driver) -> int:
+        """
+        Get total number of pages from pagination info.
+        
+        Parses the pagination text (e.g., "71 Innihaldsefni á 2 síðum") to extract
+        the total page count, with fallback to counting page number links.
+        
+        Args:
+            driver: Selenium WebDriver instance
+            
+        Returns:
+            Total number of pages (minimum 1)
+        """
+        try:
+            from selenium.webdriver.common.by import By
+        except ImportError:
+            return 1
+        
+        try:
+            # Method 1: Parse "X Innihaldsefni á Y síðum" from .rgInfoPart
+            info_divs = driver.find_elements(By.CSS_SELECTOR, ".rgInfoPart")
+            for info_div in info_divs:
+                text = info_div.text.strip()
+                # Match patterns like "á 2 síðum" or "á 10 síðum"
+                match = re.search(r'á\s+(\d+)\s+síðum', text)
+                if match:
+                    total_pages = int(match.group(1))
+                    logger.debug(f"Found {total_pages} pages from pagination text: {text}")
+                    return total_pages
+            
+            # Method 2: Count page number links in .rgNumPart
+            page_links = driver.find_elements(By.CSS_SELECTOR, ".rgNumPart a")
+            if page_links:
+                # Count unique page numbers
+                page_count = len(page_links)
+                logger.debug(f"Found {page_count} pages from page links")
+                return page_count
+            
+        except Exception as e:
+            logger.debug(f"Could not determine page count: {e}")
+        
+        return 1  # Default to 1 page if can't determine
+    
+    def _navigate_to_page(self, driver, page_num: int) -> bool:
+        """
+        Navigate to a specific page number in the pagination.
+        
+        Args:
+            driver: Selenium WebDriver instance
+            page_num: The page number to navigate to (1-based)
+            
+        Returns:
+            True if navigation succeeded, False otherwise
+        """
+        try:
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
+        except ImportError:
+            return False
+        
+        try:
+            # Dismiss cookie banner if present (it can block clicks)
+            try:
+                cookie_banner = driver.find_element(By.CSS_SELECTOR, ".cookie-disclaimer")
+                if cookie_banner.is_displayed():
+                    # Try to find and click accept/close button, or hide via JS
+                    driver.execute_script("arguments[0].style.display = 'none';", cookie_banner)
+                    time.sleep(0.2)
+            except Exception:
+                pass  # No cookie banner or already dismissed
+            
+            # Find the page number link in .rgNumPart
+            # The link contains a span with the page number text
+            page_link = driver.find_element(
+                By.XPATH,
+                f"//div[contains(@class, 'rgNumPart')]//a[span[text()='{page_num}']]"
+            )
+            
+            # Scroll into view and click
+            driver.execute_script(
+                "arguments[0].scrollIntoView({block: 'center'});", 
+                page_link
+            )
+            time.sleep(0.3)
+            page_link.click()
+            
+            # Wait for the grid to update (the page link should become current)
+            try:
+                WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((
+                        By.XPATH,
+                        f"//div[contains(@class, 'rgNumPart')]//a[contains(@class, 'rgCurrentPage')][span[text()='{page_num}']]"
+                    ))
+                )
+            except Exception:
+                # Fallback: just wait for grid to be present
+                time.sleep(1.5)
+            
+            logger.debug(f"Successfully navigated to page {page_num}")
+            return True
+            
+        except Exception as e:
+            logger.warning(f"Could not navigate to page {page_num}: {e}")
+            return False
     
     def _extract_ingredient_and_drugs(
         self,

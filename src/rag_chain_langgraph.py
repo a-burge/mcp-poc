@@ -34,7 +34,7 @@ from src.query_disambiguation import normalize_icelandic, strip_diacritics
 from config import Config
 from src.vector_store import VectorStoreManager
 from src.atc_manager import ATCManager
-from src.ingredients_manager import IngredientsManager
+from src.ingredients_manager import get_ingredients_manager
 
 logger = logging.getLogger(__name__)
 
@@ -63,6 +63,108 @@ class RewriteState(BaseModel):
 
 def norm_for_matching(s: str) -> str:
     return strip_diacritics(normalize_icelandic(s))
+
+
+def is_comparison_query(
+    question: str, 
+    extracted_medications: Optional[List[str]] = None, 
+    drug_entities: Optional[List[Dict[str, Any]]] = None
+) -> bool:
+    """
+    Detect if a query is asking for a comparison between drugs.
+    
+    Args:
+        question: User question text
+        extracted_medications: List of extracted medication names (legacy)
+        drug_entities: List of DrugEntity objects (new format)
+        
+    Returns:
+        True if query is a comparison query, False otherwise
+    """
+    question_lower = question.lower()
+    
+    # Check for comparison keywords
+    comparison_keywords = [
+        "munur", "munurinn", "munur á", "munurinn á",
+        "samanburður", "samanburð", "bera saman",
+        "hver er munurinn", "hver er munur",
+        "samanburður á", "samanburð á"
+    ]
+    
+    # Check if question contains comparison keywords
+    has_comparison_keyword = any(keyword in question_lower for keyword in comparison_keywords)
+    
+    # Check if multiple medications are mentioned
+    multiple_medications = False
+    if extracted_medications and len(extracted_medications) >= 2:
+        multiple_medications = True
+    elif drug_entities and len(drug_entities) >= 2:
+        multiple_medications = True
+    
+    return has_comparison_keyword or multiple_medications
+
+
+# Enhanced prompt template for comparison queries with detailed table formatting instructions
+ICELANDIC_COMPARISON_PROMPT = """Þú ert heilbrigðissérfræðingur sem svarar spurningum um lyfjaupplýsingar á íslensku. 
+
+Mikilvægar leiðbeiningar:
+- Notaðu EINUNGIS upplýsingarnar úr gefnum skjölum til að svara
+- Ef svarið er ekki í skjölunum, segðu að þú vitir ekki svarið
+- Vitnaðu ALLTAF í tilheyrandi kafla (section) þegar þú svarar með sniðinu: [drug_id, kafli section_number: section_title]
+- Notaðu nákvæmar tilvitnanir úr skjölunum fyrir mikilvægar upplýsingar (t.d. skammtar, viðvörun)
+- Svaraðu á nákvæmri og villulausri íslensku
+- Ekki búa til upplýsingar sem ekki eru í skjölunum
+- Ekki búa til kafla sem ekki eru til
+
+# SAMANBURÐUR - TÖFLUSNÍÐ (COMPARISON - TABLE FORMAT)
+
+Þegar spurningin er samanburður á milli tveggja eða fleiri lyfja, SKALTU ALLTAF nota töflu (markdown table) með eftirfarandi sniði:
+
+1. Fyrsta röð (header): Lyfjanöfn sem eru borin saman sem dálkar
+   Dæmi: | | Voltaren Forte | Diclofenac Teva |
+
+2. Fyrsta efnisröð: Virk innihaldsefni (active ingredients)
+   - Listaðu öll virk innihaldsefni fyrir hvert lyf
+   - Ef lyfin hafa sama virka efni, skrifaðu það í báðum dálkum
+   - Ef það er munur, notaðu **feitletrun** til að auðkenna muninn
+   Dæmi: | Virk innihaldsefni | díklófenaktvíetýlamín (23,2 mg/g) | díklófenaktvíetýlamín (23,2 mg/g) |
+
+3. Önnur efnisröð: Hjálparefni (excipients/auxiliary ingredients)
+   - Listaðu helstu hjálparefni fyrir hvert lyf
+   - Ef það er munur í hjálparefnum, notaðu **feitletrun** til að auðkenna muninn
+   - Ef lyfin hafa sömu hjálparefni, skrifaðu það í báðum dálkum
+   Dæmi: | Hjálparefni | própýlenglýkóli (50 mg/g), BHT (0,2 mg/g), ilmefni (1 mg/g) | BHT, ilmefni (sítrall, sítrónellól, kúmarín, evgenól, farnesól, geraníól, d-límónen, línalól) |
+
+4. Aðrar raðir: Eftir því sem við á, bættu við raðum fyrir:
+   - Aukaverkanir (ef samanburður á aukaverkanum)
+   - Hámarksskammtar (ef samanburður á skammtum)
+   - Önnur upplýsingar sem eru borin saman
+
+Mikilvægt fyrir töflur:
+- Notaðu markdown table syntax með | og -
+- Auðkennaðu ALLA mun með **feitletrun** (bold)
+- Ef upplýsingar vanta fyrir eitt lyf, skrifaðu "Ekki tiltækt" eða "Ekki tilgreint"
+- Vertu nákvæmur og notaðu nákvæmar tilvitnanir úr skjölunum
+
+# NB
+- Hafðu í huga að sum lyf eru til í mismunandi styrk og á mismunandi formi. Stundum er tiltekinn styrkur og form ætlað mismunandi sjúklingum. Því þarf að tilgreina hvaða lyf er átt við í svarinu.
+
+# OUTPUT REQUIREMENTS
+- Byrjaðu alltaf á tveimur setningum með því mikilvægasta sem þarf að segja. Merktu þetta sem "AÐALATRIÐI:"
+- Bættu svo við bili áður en þú bætir við næstu upplýsingum.
+- Eftir fyrstu tvær setningarnar, bættu við nauðsynlegum upplýsingum sem þarf að segja. Merktu þetta sem "FREKARI UPPLÝSINGAR:"
+- Fyrir samanburð, SKALTU nota töflu eins og lýst er hér að ofan
+- Svörin skulu vera skýr, á faglegri íslensku
+- Endaðu öll svör með því að vísa lesandanum til SmPC texta. 
+
+{history}
+
+Upplýsingar úr skjölum: {context}
+
+Spurning: {question}
+
+Svar með tilvísunum (MUST include citations in format [drug_id, kafli section_number: section_title]):"""
+
 
 # Icelandic system prompt emphasizing accuracy and source citation
 ICELANDIC_SYSTEM_PROMPT = """Þú ert heilbrigðissérfræðingur sem svarar spurningum um lyfjaupplýsingar á íslensku. 
@@ -98,7 +200,42 @@ Svar með tilvísunum (MUST include citations in format [drug_id, kafli section_
 
 
 # Query rewrite prompt for improving retrieval accuracy
-QUERY_REWRITE_PROMPT = """Þú ert klínískur lyfjafræðingur sem endursemur íslenskar lyfjaspurningar
+# Query rewrite prompt for improving retrieval accuracy (optimized for speed)
+QUERY_REWRITE_PROMPT = """Endursemdu íslenska lyfjaspurningu í skýra SmPC leitaspurningu. Veldu að hámarki 2 viðeigandi kafla. Ekki svara spurningunni. Ef enginn kafli á við → skila [].
+
+⭐ MIKILVÆGUR: ingredients_summary = ÖLL innihaldsefni og hjálparefni (notaðu þennan kafla fyrir innihaldsefna spurningar!)
+
+SmPC kaflar:
+1 = NAFN LYFS (ekki klínískt)
+2 = INNIHALDSEFNALÝSING (virk efni, hjálparefni, INN heiti)
+3 = LYFJAFORM (tafla, mixtúra, lausn, útlit)
+4.1 = Ábendingar (fyrir hvaða sjúkdóma/ástand, aldurshópar)
+4.2 = Skammtar og lyfjagjöf (ráðlagðir skammtar, börn/fullorðnir/aldraðir, PO/IV, nýrna-/lifrarstarfsemi)
+4.3 = Frábendingar (má ekki nota, áhætta)
+4.4 = Sérstök varúð (áhrif á sjúklingahópa, áhættustjórnun, eftirlit)
+4.5 = Lyfjamilliverkanir (milliverkanir, lyfhrif/lyfjahvörf, CYP)
+4.6 = Meðganga, brjóstagjöf og frjósemi
+4.7 = Áhrif á akstur og notkun véla (einbeiting, hreyfifærni)
+4.8 = Aukaverkanir (tíðni, klínískar rannsóknir, eftirmarkaðs gögn)
+4.9 = Ofskömmtun (eitrunarmerki, meðferð)
+5.1 = Lyfhrif (virknimekanismi, klínískar niðurstöður)
+5.2 = Lyfjahvörf (frásog, dreifing, umbrot, útskilnaður, helmingunartími)
+5.3 = Forklínískar upplýsingar (dýratilraunir, eiturhrif)
+6 = LYFJAGERÐAUPPLÝSINGAR (hjálparefni, geymsluskilyrði, pakkningar, úrgangsmeðhöndlun)
+7 = MARKAÐSLEYFISHAFI (ekki klínískt)
+8 = MARKAÐSLEYFISNÚMER (ekki klínískt)
+9 = DAGSETNING FYRSTU ÚTGÁFU (ekki klínískt)
+
+Dæmi: "innihaldsefni" → ["ingredients_summary", "2"] | "skammtar börn" → ["4.2"] | "má gefa barni" → ["4.2", "4.4"] | "aukaverkanir" → ["4.8"] | "milliverkanir" → ["4.5"] | "meðganga" → ["4.6"] | "virknimekanismi" → ["5.1"] | "helmingunartími" → ["5.2"]
+
+{chat_history_context}
+
+Spurning: {question}
+
+JSON:
+{format_instructions}"""
+
+QUERY_REWRITE_PROMPT_legacy = """Þú ert klínískur lyfjafræðingur sem endursemur íslenskar lyfjaspurningar
 í skýrar, formlegar SmPC leitaspurningar.
 
 Markmið:
@@ -118,6 +255,7 @@ Mikilvægt:
 
 Notaðu einungis eftirfarandi lýsingar til að meta hvaða kaflar eiga við.
 Ekki draga ályktanir út fyrir þessar skilgreiningar.
+Ekki bæta eigin túlkun við upplýsingarnar.
 SmPC kaflar og merking þeirra (samantekt):
 
 1. NAFN LYFS
@@ -206,6 +344,9 @@ SmPC kaflar og merking þeirra (samantekt):
 
 9. DAGSETNING FYRSTU ÚTGÁFU / ENDURNÝJUNAR
     - Ekki viðeigandi fyrir spurningar
+
+ingredients_summary
+    - Sérstakur kafli með öllum innihaldsefnum og hjálparefnum
 
 
 ⭐ Notkun:
@@ -303,7 +444,7 @@ class DocumentRAGGraph:
         self.graph = None
         self.tracer = None
         self.atc_manager = ATCManager()  # ATC data manager
-        self.ingredients_manager = IngredientsManager()  # Ingredients data manager
+        self.ingredients_manager = get_ingredients_manager()  # Ingredients data manager (singleton for performance)
         self._initialize()
     
     def _initialize(self) -> None:
@@ -316,17 +457,27 @@ class DocumentRAGGraph:
         - Opik tracing setup
         """
         logger.info(f"Initializing LangGraph RAG system with provider: {self.provider}")
+        logger.info(f"[PERF] ENABLE_QUERY_REWRITE: {Config.ENABLE_QUERY_REWRITE}")
+        logger.info(f"[PERF] ENABLE_RERANKING: {Config.ENABLE_RERANKING}")
         
         # Initialize LLM
         self.llm = self._create_llm()
         
         # Initialize cheaper LLM for ranking if re-ranking is enabled
         if Config.ENABLE_RERANKING:
+            logger.info("[PERF] Initializing reranking LLM (will make LLM calls during reranking)")
             self.reranking_llm = self._create_reranking_llm()
+        else:
+            logger.info("[PERF] Reranking disabled - no reranking LLM initialized (faster)")
+            self.reranking_llm = None
         
         # Initialize LLM for query rewriting if rewrite is enabled
         if Config.ENABLE_QUERY_REWRITE:
+            logger.info("[PERF] Initializing rewrite LLM (will make LLM call during query rewrite)")
             self.rewrite_llm = self._create_rewrite_llm()
+        else:
+            logger.info("[PERF] Query rewrite disabled - no rewrite LLM initialized (faster)")
+            self.rewrite_llm = None
         
         # Build LangGraph
         graph = StateGraph(DocumentRAGState)
@@ -353,13 +504,17 @@ class DocumentRAGGraph:
         def route_after_retrieval(state: DocumentRAGState) -> str:
             """Route after retrieval based on sufficiency and re-ranking config."""
             if state.get("error"):
+                logger.info("[ROUTE] Error detected -> fallback")
                 return "fallback"
             if not state.get("retrieval_sufficient", True):
+                logger.info("[ROUTE] Insufficient retrieval -> fallback")
                 return "fallback"
             # If re-ranking is enabled, check if it's needed
             if Config.ENABLE_RERANKING:
+                logger.info("[ROUTE] Re-ranking enabled -> reranking_decision")
                 return "reranking_decision"
             # Skip re-ranking, go directly to generation
+            logger.info("[ROUTE] Re-ranking disabled -> generation (fast path)")
             return "generation"
         
         graph.add_conditional_edges("retrieval", route_after_retrieval)
@@ -967,9 +1122,9 @@ class DocumentRAGGraph:
         # Early return if disabled or LLM unavailable
         if not Config.ENABLE_QUERY_REWRITE or self.rewrite_llm is None:
             if not Config.ENABLE_QUERY_REWRITE:
-                logger.debug("Query rewrite disabled (ENABLE_QUERY_REWRITE=False), skipping rewrite")
+                logger.info("[PERF] Query rewrite SKIPPED (ENABLE_QUERY_REWRITE=False) - no LLM call")
             else:
-                logger.debug("Query rewrite LLM unavailable, skipping rewrite")
+                logger.info("[PERF] Query rewrite SKIPPED (LLM unavailable) - no LLM call")
             return {}
         
         try:
@@ -1558,6 +1713,7 @@ Innihald:
         """
         # Check if re-ranking is enabled
         if not Config.ENABLE_RERANKING:
+            logger.info("[PERF] Re-ranking decision SKIPPED (ENABLE_RERANKING=False) - no LLM call")
             return {"reranking_needed": False}
         
         # Check for errors or insufficient retrieval
@@ -1637,6 +1793,13 @@ Svaraðu með JSON sniði sem passar við Pydantic líkanið."""
         Returns:
             Updated state with re-ranked documents and formatted context
         """
+        # Safety check: should not be called if reranking is disabled
+        if not Config.ENABLE_RERANKING:
+            logger.warning("[PERF] Re-ranking node called but ENABLE_RERANKING=False - skipping (this should not happen)")
+            return {}
+        
+        logger.info("[PERF] Re-ranking node executing - will make LLM calls for document scoring")
+        
         # Check for errors or insufficient retrieval
         if state.get("error") or not state.get("retrieval_sufficient", True):
             return {}
@@ -1903,13 +2066,27 @@ Ef þú leitar að upplýsingum um tiltekið lyf, getur þú notað leitina á s
                         
                         context += alt_context
             
+            # Detect if this is a comparison query
+            extracted_medications = state.get("extracted_medications", [])
+            drug_entities = state.get("drug_entities", [])
+            is_comparison = is_comparison_query(
+                question, 
+                extracted_medications=extracted_medications,
+                drug_entities=drug_entities
+            )
+            
+            if is_comparison:
+                logger.info("Comparison query detected, using enhanced comparison prompt")
+            
             # Create prompt template
             if chat_history:
-                prompt_template = ICELANDIC_SYSTEM_PROMPT
+                # Use comparison prompt if comparison detected, otherwise use standard prompt
+                prompt_template = ICELANDIC_COMPARISON_PROMPT if is_comparison else ICELANDIC_SYSTEM_PROMPT
                 input_variables = ["context", "question", "history"]
             else:
                 # Simplified prompt without history
-                prompt_template = ICELANDIC_SYSTEM_PROMPT.replace("{history}\n\n", "")
+                base_prompt = ICELANDIC_COMPARISON_PROMPT if is_comparison else ICELANDIC_SYSTEM_PROMPT
+                prompt_template = base_prompt.replace("{history}\n\n", "")
                 input_variables = ["context", "question"]
                 chat_history = ""
             
