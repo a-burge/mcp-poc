@@ -57,6 +57,10 @@ class Config:
     RERANKING_MODEL: str = os.getenv("RERANKING_MODEL", "gemini-2.5-flash")  # Cheaper/faster model for ranking (default: gemini-2.5-flash)
     RERANKING_DECISION_THRESHOLD: int = int(os.getenv("RERANKING_DECISION_THRESHOLD", "10"))  # Min docs to consider re-ranking
     
+    # Query Rewrite Configuration
+    ENABLE_QUERY_REWRITE: bool = os.getenv("ENABLE_QUERY_REWRITE", "false").lower() == "true"  # Enable query rewriting (default: False for safety)
+    REWRITE_MODEL: str = os.getenv("REWRITE_MODEL", "gemini-2.5-flash")  # Model for query rewrite (default: gemini-2.5-flash)
+    
     # Data directories
     DATA_DIR: Path = Path("data")
     PDFS_DIR: Path = DATA_DIR / "pdfs"
@@ -65,10 +69,16 @@ class Config:
     ATC_DATA_DIR: Path = DATA_DIR / "atc"
     ATC_INDEX_PATH: Path = ATC_DATA_DIR / "atc_index.json"
     DRUG_ATC_MAPPINGS_PATH: Path = ATC_DATA_DIR / "drug_atc_mappings.json"
+    INGREDIENTS_DATA_DIR: Path = DATA_DIR / "ingredients"
+    INGREDIENTS_INDEX_PATH: Path = INGREDIENTS_DATA_DIR / "ingredients_index.json"
     
     # MCP Server Configuration
     MCP_SERVER_HOST: str = os.getenv("MCP_SERVER_HOST", "0.0.0.0")
     MCP_SERVER_PORT: int = int(os.getenv("MCP_SERVER_PORT", "8000"))
+    
+    # MCP Server Authentication
+    MCP_AUTH_USERNAME: str = os.getenv("MCP_AUTH_USERNAME", "admin")
+    MCP_AUTH_PASSWORD: str = os.getenv("MCP_AUTH_PASSWORD", "")
     
     @classmethod
     def get_mcp_server_url(cls) -> str:
@@ -107,4 +117,5 @@ class Config:
         cls.RAW_SOURCE_DOCS_DIR.mkdir(exist_ok=True)
         cls.STRUCTURED_DIR.mkdir(exist_ok=True)
         cls.ATC_DATA_DIR.mkdir(exist_ok=True)
+        cls.INGREDIENTS_DATA_DIR.mkdir(exist_ok=True)
         cls.VECTOR_STORE_PATH.mkdir(parents=True, exist_ok=True)

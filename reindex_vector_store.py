@@ -138,11 +138,22 @@ def reindex_json_file(
         
         # Remove existing chunks for this document
         # Use source_pdf filename as the document identifier
+        # BUT: Skip if collection is empty (just cleared)
         if source_pdf:
             pdf_filename = Path(source_pdf).name
-            removed_count = vector_store.remove_document(pdf_filename)
-            if removed_count > 0:
-                logger.info(f"Removed {removed_count} old chunks for {drug_id}")
+            try:
+                # Check if collection has any documents before trying to remove
+                doc_count = vector_store.get_document_count()
+                if doc_count > 0:
+                    removed_count = vector_store.remove_document(pdf_filename)
+                    if removed_count > 0:
+                        logger.info(f"Removed {removed_count} old chunks for {drug_id}")
+                else:
+                    logger.debug(f"Collection is empty, skipping removal for {drug_id}")
+            except (StopIteration, Exception) as e:
+                # Collection may be empty or not fully initialized
+                logger.debug(f"Could not check/remove documents (collection may be empty): {e}")
+                # Continue anyway - we'll just add new chunks
         
         # Re-chunk with new settings from Config
         chunks = chunk_smpc_json(

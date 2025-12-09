@@ -1,0 +1,41 @@
+{
+  "hierarchy": {
+    "A": {
+      "code": "A",
+      "name": "Nákvæmari leit",
+      "level2": {
+        "MELTINGARFÆRI OG EFNASKIPTI": {
+          "code": "MELTINGARFÆRI OG EFNASKIPTI",
+          "name": "",
+          "level3": {}
+        },
+        "A01": {
+          "code": "A01",
+          "name": "MUNN- OG TANNLYF",
+          "level3": {}
+        }
+      }
+    },
+    "B": {
+      "code": "B",
+      "name": "Nákvæmari leit",
+      "level2": {
+        "BLÓÐ OG BLÓÐMYNDANDI LÍFFÆRI": {
+          "code": "BLÓÐ OG BLÓÐMYNDANDI LÍFFÆRI",
+          "name": "",
+          "level3": {}
+        },
+        "B01": {
+          "code": "B01",
+          "name": "SEGAVARNARLYF",
+          "level3": {}
+        }
+      }
+    },
+    "C": {
+      "code": "C",
+      "name": "",
+      "level2": {}
+    }
+  }
+}

@@ -1,6 +1,7 @@
 """Vector store management with Chroma and multilingual embeddings."""
 import logging
 import os
+import time
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime
@@ -193,21 +194,100 @@ class VectorStoreManager:
         logger.info(f"Initializing vector store at {persist_directory}")
         
         # Create ChromaDB client with telemetry explicitly disabled
-        # This prevents telemetry events that conflict with Opik
         client = chromadb.PersistentClient(
             path=persist_directory,
             settings=Settings(anonymized_telemetry=False)
         )
         
+        # Get or create collection with HNSW parameters optimized for large collections
+        # These parameters MUST be set at collection creation time - they cannot be changed later
+        # For 62k+ documents, we need higher M and ef_construction values
+        # NOTE: In ChromaDB 0.4.22, HNSW parameters may not be fully supported via metadata
+        # We'll try to create with parameters, but fall back to default if needed
+        collection = None
+        try:
+            # Try to get existing collection first
+            collection = client.get_collection(name=self.collection_name)
+            logger.info(f"Using existing collection '{self.collection_name}'")
+        except Exception:
+            # Collection doesn't exist, create it
+            # Try with HNSW parameters first (as integers, not strings)
+            try:
+                collection = client.create_collection(
+                    name=self.collection_name,
+                    metadata={
+                        "hnsw:space": "cosine",
+                        "hnsw:M": 32,  # Integer, not string
+                        "hnsw:construction_ef": 400,  # Integer, not string
+                        "hnsw:search_ef": 100,  # Integer, not string
+                    }
+                )
+                logger.info(f"Created collection '{self.collection_name}' with HNSW parameters: M=32, ef_construction=400")
+            except Exception as e:
+                # If HNSW parameters fail, create without them (will use defaults)
+                logger.warning(f"Could not create collection with HNSW parameters: {e}")
+                logger.warning("Creating collection with default parameters")
+                try:
+                    collection = client.create_collection(name=self.collection_name)
+                    logger.info(f"Created collection '{self.collection_name}' with default parameters")
+                except Exception as create_error:
+                    # Collection might have been created by another process, try to get it
+                    logger.warning(f"Collection creation failed: {create_error}, attempting to get existing collection")
+                    collection = client.get_collection(name=self.collection_name)
+        
         # Initialize Chroma with persistent storage and explicit client
-        # Note: persist_directory is required even when using PersistentClient
-        # for the LangChain wrapper's persist() method to work
         self.vector_store = Chroma(
             collection_name=self.collection_name,
             embedding_function=self.embeddings,
             client=client,
             persist_directory=persist_directory,
         )
+        
+        # CRITICAL FIX: Ensure collection segments are initialized by adding and removing a dummy document
+        # ROOT CAUSE: Empty collections don't have segments initialized until first document is added
+        # By adding and removing a dummy document, we force ChromaDB to create all necessary segments
+        # This prevents StopIteration errors when adding the first real batch of documents
+        try:
+            doc_count = self.vector_store._collection.count()
+            if doc_count == 0:
+                # Collection is empty - add a dummy document to initialize segments
+                logger.info("Collection is empty, initializing segments with dummy document...")
+                dummy_text = "dummy_initialization"
+                max_init_retries = 3
+                init_success = False
+                
+                for init_attempt in range(max_init_retries):
+                    try:
+                        self.vector_store.add_texts(
+                            texts=[dummy_text],
+                            ids=["__dummy_init__"],
+                            metadatas=[{"__init__": True}]
+                        )
+                        # Immediately remove it
+                        self.vector_store._collection.delete(ids=["__dummy_init__"])
+                        logger.info("Collection segments initialized successfully")
+                        init_success = True
+                        break
+                    except StopIteration:
+                        # Even the dummy add can fail with StopIteration - retry with delay
+                        if init_attempt < max_init_retries - 1:
+                            logger.debug(f"Segment initialization retry {init_attempt + 1}/{max_init_retries}...")
+                            time.sleep(0.5 * (init_attempt + 1))  # Increasing delay
+                        else:
+                            logger.warning("Could not initialize segments with dummy document after retries")
+                            logger.warning("Segments will be initialized on first real document add")
+                    except Exception as init_error:
+                        # Other errors - log and give up
+                        logger.warning(f"Could not initialize with dummy document: {init_error}")
+                        logger.warning("Segments will be initialized on first real document add")
+                        break
+                
+                if not init_success:
+                    logger.warning("Segment initialization incomplete - first real add may trigger StopIteration")
+        except Exception as count_error:
+            # If count fails, collection might not be fully initialized
+            # This is okay - segments will be created on first add
+            logger.debug(f"Could not check collection count: {count_error}")
         
         logger.info("Vector store initialized")
     
@@ -236,20 +316,72 @@ class VectorStoreManager:
             metadata.setdefault("medication_name", chunk.medication_name)
             # Ensure drug_id is set - use from metadata if present, otherwise use medication_name
             metadata.setdefault("drug_id", metadata.get("drug_id", chunk.medication_name))
-            # Ensure ATC codes are included (may be empty list if not enriched)
-            if "atc_codes" not in metadata:
-                metadata["atc_codes"] = []
+            # Handle ATC codes: ChromaDB via LangChain doesn't accept lists in metadata
+            # Convert list to comma-separated string for storage
+            if "atc_codes" in metadata:
+                atc_codes = metadata["atc_codes"]
+                if isinstance(atc_codes, list):
+                    if len(atc_codes) > 0:
+                        # Convert list to comma-separated string
+                        metadata["atc_codes"] = ",".join(str(code) for code in atc_codes)
+                    else:
+                        # Remove empty list
+                        del metadata["atc_codes"]
+                elif not atc_codes:
+                    # Remove empty/None value
+                    del metadata["atc_codes"]
             metadatas.append(metadata)
         ids = [
             f"{chunk.source_document}_{i}_{chunk.section_title}"
             for i, chunk in enumerate(chunks)
         ]
         
-        self.vector_store.add_texts(
-            texts=texts,
-            metadatas=metadatas,
-            ids=ids
-        )
+        # Handle ChromaDB segment initialization issue when collection is empty
+        # This can happen after clearing the collection - segments may not be initialized yet
+        max_retries = 3
+        retry_delay = 0.5
+        
+        for attempt in range(max_retries):
+            try:
+                self.vector_store.add_texts(
+                    texts=texts,
+                    metadatas=metadatas,
+                    ids=ids
+                )
+                break  # Success, exit retry loop
+            except StopIteration as e:
+                # ChromaDB segment manager issue - segments not initialized yet
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        f"ChromaDB segment initialization issue (attempt {attempt + 1}/{max_retries}). "
+                        f"Retrying after {retry_delay}s..."
+                    )
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Exponential backoff
+                else:
+                    # Last attempt failed - try adding one document at a time to force initialization
+                    logger.warning(
+                        "Bulk add failed after retries. Adding documents one at a time to force segment initialization..."
+                    )
+                    for i, (text, metadata, doc_id) in enumerate(zip(texts, metadatas, ids)):
+                        try:
+                            self.vector_store.add_texts(
+                                texts=[text],
+                                metadatas=[metadata],
+                                ids=[doc_id]
+                            )
+                            if (i + 1) % 10 == 0:
+                                logger.info(f"Added {i + 1}/{len(chunks)} chunks individually...")
+                        except Exception as individual_error:
+                            logger.error(
+                                f"Failed to add chunk {i} (id: {doc_id}): {individual_error}"
+                            )
+                            raise
+                    break  # Successfully added all individually
+            except Exception as e:
+                # Other errors - don't retry, just raise
+                logger.error(f"Error adding chunks to vector store: {e}")
+                raise
         
         # Persist to disk
         self.vector_store.persist()
@@ -263,26 +395,24 @@ class VectorStoreManager:
         """Clear all documents from the vector store."""
         logger.warning("Clearing vector store collection")
         
-        # Delete collection and recreate
-        if self.vector_store:
-            # Get client and delete collection
-            # Disable telemetry to avoid PostHog compatibility errors
-            client = chromadb.PersistentClient(
-                path=str(Config.VECTOR_STORE_PATH),
-                settings=Settings(anonymized_telemetry=False)
-            )
-            try:
-                client.delete_collection(self.collection_name)
-            except Exception as e:
-                logger.warning(f"Collection may not exist: {e}")
+        # Delete collection and recreate with proper HNSW parameters
+        client = chromadb.PersistentClient(
+            path=str(Config.VECTOR_STORE_PATH),
+            settings=Settings(anonymized_telemetry=False)
+        )
+        try:
+            client.delete_collection(self.collection_name)
+            logger.info(f"Deleted collection '{self.collection_name}'")
+        except Exception as e:
+            logger.warning(f"Collection may not exist: {e}")
         
-        # Reinitialize
+        # Reinitialize (will create collection with new HNSW parameters)
         self._initialize_store()
         
         # Reset drug list cache
         self.all_drugs = []
         
-        logger.info("Vector store cleared")
+        logger.info("Vector store cleared and recreated with proper HNSW parameters")
     
     def get_retriever(self, top_k: Optional[int] = None):
         """
@@ -413,17 +543,23 @@ class VectorStoreManager:
         Returns:
             Sorted list of unique drug_id strings
         """
-        if not self.vector_store:
+        if self.vector_store is None:
             logger.warning("Vector store not initialized")
             return []
         
         try:
             collection = self.vector_store._collection
+            if not collection:
+                return []
             
             # First, get all IDs from the collection (this is fast, no metadata)
             all_ids_result = collection.get(include=[])
             all_ids = all_ids_result.get("ids", [])
             total_docs = len(all_ids)
+            
+            if total_docs == 0:
+                logger.debug("Collection is empty, no drug IDs to extract")
+                return []
             
             logger.info(f"Processing {total_docs} documents to extract unique drug IDs...")
             
@@ -455,8 +591,9 @@ class VectorStoreManager:
             result = sorted(list(drug_ids))
             logger.info(f"Found {len(result)} unique drug IDs in vector store (from {total_docs} documents)")
             return result
-        except Exception as e:
-            logger.error(f"Error getting all drug IDs: {e}", exc_info=True)
+        except (StopIteration, AttributeError, Exception) as e:
+            # Collection may be empty or not fully initialized
+            logger.debug(f"Could not get drug IDs (collection may be empty): {e}")
             return []
 
     @property
@@ -571,19 +708,30 @@ class VectorStoreManager:
         try:
             collection = self.vector_store._collection
             
-            # Query for documents with matching ATC codes
-            # ChromaDB supports array contains queries
+            # ATC codes are stored as comma-separated strings
+            # ChromaDB doesn't support $contains for strings, so we need to:
+            # Get all documents and filter in Python
+            # This is less efficient but necessary for string matching
+            
+            # Get all documents (we'll filter by atc_codes in Python)
+            # Limit to reasonable batch size to avoid memory issues
             results = collection.get(
-                where={"atc_codes": {"$contains": atc_code}},
+                limit=100000,  # Large limit to get all docs
                 include=["metadatas"]
             )
             
             drug_ids = set()
             metadatas = results.get("metadatas", [])
             for metadata in metadatas:
-                drug_id = metadata.get("drug_id")
-                if drug_id:
-                    drug_ids.add(drug_id)
+                atc_codes_str = metadata.get("atc_codes", "")
+                if atc_codes_str:
+                    # Parse comma-separated string
+                    codes = [c.strip() for c in atc_codes_str.split(",")]
+                    # Check if any code matches (exact or starts with)
+                    if any(code == atc_code or code.startswith(atc_code) or atc_code in code for code in codes):
+                        drug_id = metadata.get("drug_id")
+                        if drug_id:
+                            drug_ids.add(drug_id)
             
             return sorted(list(drug_ids))
         except Exception as e:
@@ -608,13 +756,143 @@ class VectorStoreManager:
         if top_k is None:
             top_k = Config.RETRIEVAL_TOP_K
         
-        search_kwargs = {
-            "k": top_k,
-            "filter": {"atc_codes": {"$contains": atc_code}}
-        }
+        # Get all drugs with this ATC code
+        drug_ids = self.get_drugs_by_atc(atc_code)
+        
+        if not drug_ids:
+            # No drugs found with this ATC code
+            # Return a retriever that filters to non-existent drug_id (will return empty)
+            search_kwargs = {
+                "k": top_k,
+                "filter": {"drug_id": "__NO_DRUGS_WITH_ATC__"}
+            }
+            base_retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
+            return InstrumentedRetriever(base_retriever, medication_filter=f"ATC:{atc_code}")
+        
+        # Use drug_id filtering (ChromaDB supports $in for multiple values)
+        if len(drug_ids) == 1:
+            search_kwargs = {
+                "k": top_k,
+                "filter": {"drug_id": drug_ids[0]}
+            }
+        else:
+            search_kwargs = {
+                "k": top_k,
+                "filter": {"drug_id": {"$in": drug_ids}}
+            }
         
         base_retriever = self.vector_store.as_retriever(
             search_kwargs=search_kwargs
         )
         
         return InstrumentedRetriever(base_retriever, medication_filter=f"ATC:{atc_code}")
+    
+    def get_retriever_by_ingredients(
+        self,
+        ingredient_names: List[str],
+        top_k: Optional[int] = None
+    ):
+        """
+        Get retriever filtered by active ingredients.
+        
+        Uses IngredientsManager to find all drugs with these ingredients,
+        then filters vector store by those drug_ids.
+        
+        Args:
+            ingredient_names: List of active ingredient names (INN names)
+            top_k: Number of documents to retrieve
+            
+        Returns:
+            VectorStoreRetriever instance filtered by active ingredients
+        """
+        if top_k is None:
+            top_k = Config.RETRIEVAL_TOP_K
+        
+        if not ingredient_names:
+            # No ingredients specified, return empty retriever
+            search_kwargs = {
+                "k": top_k,
+                "filter": {"drug_id": "__NO_INGREDIENTS_SPECIFIED__"}
+            }
+            base_retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
+            return InstrumentedRetriever(base_retriever, medication_filter="Ingredients:None")
+        
+        # Lazy import to avoid circular dependencies
+        try:
+            from src.ingredients_manager import IngredientsManager
+            ingredients_manager = IngredientsManager()
+        except Exception as e:
+            logger.error(f"Could not load IngredientsManager: {e}")
+            # Return empty retriever
+            search_kwargs = {
+                "k": top_k,
+                "filter": {"drug_id": "__INGREDIENTS_MANAGER_ERROR__"}
+            }
+            base_retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
+            return InstrumentedRetriever(base_retriever, medication_filter="Ingredients:Error")
+        
+        # Get all drugs with any of the specified ingredients
+        all_drug_ids = set()
+        for ingredient in ingredient_names:
+            drugs_with_ingredient = ingredients_manager.get_drugs_by_ingredient(ingredient)
+            all_drug_ids.update(drugs_with_ingredient)
+        
+        if not all_drug_ids:
+            # No drugs found with these ingredients
+            search_kwargs = {
+                "k": top_k,
+                "filter": {"drug_id": "__NO_DRUGS_WITH_INGREDIENTS__"}
+            }
+            base_retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
+            ingredient_str = ", ".join(ingredient_names)
+            return InstrumentedRetriever(base_retriever, medication_filter=f"Ingredients:{ingredient_str}")
+        
+        # Filter to only drugs that exist in vector store
+        available_medications = self.get_unique_medications()
+        available_drug_ids = []
+        
+        for drug_id in all_drug_ids:
+            # Normalize drug name for matching
+            # Convert underscores to spaces to handle mismatch between ingredients index (spaces)
+            # and vector store (underscores), e.g., "Dicloxacillin Bluefish" vs "Dicloxacillin_Bluefish_SmPC"
+            drug_normalized = drug_id.lower().replace("_smpc", "").replace("_smPC", "").replace("_", " ").strip()
+            
+            # Try to match drug name to available medications
+            for available in available_medications:
+                available_normalized = available.lower().replace("_smpc", "").replace("_smPC", "").replace("_", " ").strip()
+                
+                # Match if normalized names are similar
+                if (drug_normalized == available_normalized or
+                    drug_normalized in available_normalized or
+                    available_normalized in drug_normalized):
+                    available_drug_ids.append(available)
+                    break
+        
+        if not available_drug_ids:
+            # No matching drugs in vector store
+            search_kwargs = {
+                "k": top_k,
+                "filter": {"drug_id": "__NO_MATCHING_DRUGS_IN_STORE__"}
+            }
+            base_retriever = self.vector_store.as_retriever(search_kwargs=search_kwargs)
+            ingredient_str = ", ".join(ingredient_names)
+            return InstrumentedRetriever(base_retriever, medication_filter=f"Ingredients:{ingredient_str}")
+        
+        # Use drug_id filtering (ChromaDB supports $in for multiple values)
+        if len(available_drug_ids) == 1:
+            search_kwargs = {
+                "k": top_k,
+                "filter": {"drug_id": available_drug_ids[0]}
+            }
+        else:
+            search_kwargs = {
+                "k": top_k,
+                "filter": {"drug_id": {"$in": available_drug_ids}}
+            }
+        
+        base_retriever = self.vector_store.as_retriever(
+            search_kwargs=search_kwargs
+        )
+        
+        ingredient_str = ", ".join(ingredient_names)
+        return InstrumentedRetriever(base_retriever, medication_filter=f"Ingredients:{ingredient_str}")

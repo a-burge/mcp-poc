@@ -1,3 +1,7 @@
+# ADD DEPRECATION NOTICE HERE - point to rag_chain_langgraph.py
+"""
+This file is deprecated. Please use rag_chain_langgraph.py instead.
+"""
 
 """
 Minimal, clean, course‑style RAG implementation using LangGraph.
@@ -217,32 +221,138 @@ class SmPCRAGGraph:
         return {"chat_history": history_str}
 
     # -----------------------------------------------------
+    # 4.5. Helper: Expand drugs by active ingredients
+    # -----------------------------------------------------
+    def _expand_drugs_by_ingredients(self, detected_drugs: List[str]) -> List[str]:
+        """
+        Expand detected drugs to include all drugs with the same active ingredient(s).
+        
+        For example, if "Íbúfen" is detected, this will also include Nurofen, Alvofen,
+        and other brands containing Ibuprofenum.
+        
+        Args:
+            detected_drugs: List of detected drug IDs
+            
+        Returns:
+            Expanded list of drug IDs including all drugs with same active ingredients
+        """
+        if not detected_drugs:
+            return detected_drugs
+        
+        try:
+            from src.ingredients_manager import IngredientsManager
+            ingredients_manager = IngredientsManager()
+            
+            expanded_drugs = set(detected_drugs)  # Start with detected brands
+            available_medications = self.vector_store_manager.get_unique_medications()
+            
+            # For each detected drug, find its active ingredient(s) and expand
+            for drug_id in detected_drugs:
+                # Get active ingredients for this drug
+                ingredients = ingredients_manager.get_ingredients_for_drug(drug_id)
+                
+                if not ingredients:
+                    # No ingredients found, keep original drug
+                    continue
+                
+                # For each ingredient, find all drugs containing it
+                for ingredient in ingredients:
+                    drugs_with_ingredient = ingredients_manager.get_drugs_by_ingredient(ingredient)
+                    
+                    # Filter to only drugs that exist in vector store
+                    for drug in drugs_with_ingredient:
+                        # Normalize drug name for matching
+                        drug_normalized = drug.lower().replace("_smpc", "").replace("_smPC", "").strip()
+                        
+                        # Try to match drug name to available medications
+                        for available in available_medications:
+                            available_normalized = available.lower().replace("_smpc", "").replace("_smPC", "").strip()
+                            
+                            # Match if normalized names are similar
+                            if (drug_normalized == available_normalized or
+                                drug_normalized in available_normalized or
+                                available_normalized in drug_normalized):
+                                expanded_drugs.add(available)
+                                break
+            
+            if len(expanded_drugs) > len(detected_drugs):
+                logger.info(f"Expanded medication filter from {len(detected_drugs)} to {len(expanded_drugs)} drugs based on active ingredients")
+                logger.debug(f"Original: {detected_drugs}")
+                logger.debug(f"Expanded: {sorted(expanded_drugs)}")
+            
+            return list(expanded_drugs)
+            
+        except Exception as e:
+            logger.warning(f"Error expanding medications by ingredient: {e}", exc_info=True)
+            # Fall back to original detected_drugs on error
+            return detected_drugs
+    
+    # -----------------------------------------------------
     # 5. Retrieval node (with drug detection and filtering)
     # -----------------------------------------------------
     def _retrieval_node(self, state: SmPCRAGState) -> Dict[str, Any]:
         question = state["question"]
+        chat_history = state.get("chat_history", "")
 
-        # 1. Detect medications mentioned in the question
+        # 1. Detect medications mentioned in the current question
         detected_drugs = detect_medications(question, self.vector_store_manager.all_drugs_list)
         
+        # 2. If no medications found in current question, check chat history
+        if not detected_drugs and chat_history:
+            logger.info("No medications detected in current question, checking chat history")
+            detected_drugs = detect_medications(chat_history, self.vector_store_manager.all_drugs_list)
+            if detected_drugs:
+                logger.info(f"Found medications in chat history: {detected_drugs}")
+        
+        # 2.5. Expand detected drugs to include all drugs with same active ingredient
         if detected_drugs:
-            logger.info(f"Detected medications in query: {detected_drugs}")
-            # 2. Filtered retrieval: only retrieve documents for detected drugs
+            detected_drugs = self._expand_drugs_by_ingredients(detected_drugs)
+        
+        # 3. Enhance query with minimal context from previous conversation
+        # This helps with follow-up questions like "en ef barnið er 14 ára?" after "er í lagi að gefa barni íbúfen?"
+        # We extract just the previous question to provide context without overwhelming the query
+        enhanced_question = question
+        if chat_history:
+            # Extract the last question from history (format: "Spurning: ...")
+            history_lines = chat_history.split("\n")
+            previous_question = None
+            for line in reversed(history_lines):
+                if line.startswith("Spurning:"):
+                    previous_question = line.replace("Spurning:", "").strip()
+                    break
+            
+            # If we found a previous question and it's different from current, add minimal context
+            if previous_question and previous_question != question:
+                # Add just the medication context if we detected drugs from history
+                if detected_drugs:
+                    # We already have medication filter, just add age/context keywords from previous question
+                    # Extract key terms that might help (age, condition, etc.)
+                    enhanced_question = f"{question} (tengt við: {previous_question})"
+                    logger.debug(f"Enhanced query with previous question context")
+                else:
+                    # No medications found, add full previous question for better retrieval
+                    enhanced_question = f"{question} {previous_question}"
+                    logger.debug(f"Enhanced query with previous question (no medications found)")
+        
+        if detected_drugs:
+            logger.info(f"Detected medications: {detected_drugs}")
+            # 4. Filtered retrieval: only retrieve documents for detected drugs
             retriever = self.vector_store_manager.get_retriever_with_filter(
                 drug_ids=detected_drugs,
                 top_k=Config.RETRIEVAL_TOP_K
             )
         else:
             logger.info("No medications detected, using general retrieval")
-            # 3. General fallback: retrieve from all drugs
+            # 5. General fallback: retrieve from all drugs
             retriever = self.vector_store_manager.get_retriever(top_k=Config.RETRIEVAL_TOP_K)
         
-        retrieval_chain = RunnableLambda(lambda _: question) | retriever
+        # Use enhanced question for retrieval to improve relevance
+        retrieval_chain = RunnableLambda(lambda _: enhanced_question) | retriever
 
         try:
             docs = retrieval_chain.invoke({})
         except AttributeError:
-            docs = retriever.get_relevant_documents(question)
+            docs = retriever.get_relevant_documents(enhanced_question)
 
         context = self._format_context(docs)
 

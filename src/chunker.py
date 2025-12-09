@@ -305,6 +305,7 @@ def chunk_smpc_json(
                     "section": section_title,
                     "source": source_pdf,
                     "medication_name": drug_id,
+                    "atc_codes": atc_codes,  # Add ATC codes to metadata
                 }
             ))
         else:

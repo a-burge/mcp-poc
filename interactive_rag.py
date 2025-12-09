@@ -133,6 +133,7 @@ class InteractiveRAG:
         
         answer = result.get("answer", "")
         sources = result.get("sources", [])
+        similar_drugs = result.get("similar_drugs", [])
         
         print("\n" + "=" * 80)
         print("ANSWER:")
@@ -148,18 +149,42 @@ class InteractiveRAG:
                 drug_id = source.get("drug_id", "Unknown")
                 section_number = source.get("section_number", "Unknown")
                 section_title = source.get("section_title", "")
+                page = source.get("page", "")
                 
-                print(f"{i}. [{drug_id}] Section {section_number}: {section_title}")
-                # The RAG chain returns "text" for chunk content
+                # Format source header with clearer visual hierarchy
+                print(f"\n[{i}] {drug_id}")
+                print(f"    Section {section_number}: {section_title}")
+                if page and page != "Unknown":
+                    print(f"    Page: {page}")
+                
+                # Show chunk preview with better formatting
                 chunk_text = source.get("text") or source.get("chunk_text")
                 if chunk_text:
-                    # Show first 150 chars of chunk
-                    chunk_preview = chunk_text[:150]
-                    if len(chunk_text) > 150:
+                    # Show first 200 chars of chunk (increased from 150)
+                    chunk_preview = chunk_text[:200].strip()
+                    if len(chunk_text) > 200:
                         chunk_preview += "..."
-                    print(f"   Preview: {chunk_preview}")
+                    # Wrap long lines for better readability
+                    import textwrap
+                    wrapped_preview = textwrap.fill(
+                        chunk_preview, 
+                        width=76, 
+                        initial_indent="    ", 
+                        subsequent_indent="    "
+                    )
+                    print(f"    Preview:\n{wrapped_preview}")
         else:
             print("(No sources found)")
+        
+        # Display similar drugs section if available
+        if similar_drugs:
+            print("=" * 80)
+            print(f"SIMILAR DRUGS ({len(similar_drugs)}):")
+            print("=" * 80)
+            print("Brand variants sharing the same active ingredients:")
+            for i, drug in enumerate(similar_drugs, 1):
+                print(f"  {i}. {drug}")
+            print()
         
         print("=" * 80 + "\n")
     

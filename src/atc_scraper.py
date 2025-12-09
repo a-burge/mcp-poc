@@ -148,7 +148,7 @@ class ATCScraper:
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
             from selenium.webdriver.chrome.options import Options
-            from selenium.common.exceptions import TimeoutException, NoSuchElementException
+            from selenium.common.exceptions import TimeoutException, NoSuchElementException, InvalidSessionIdException
         except ImportError:
             logger.error("Selenium not installed. Install with: pip install selenium")
             raise ImportError("Selenium is required for JavaScript-heavy scraping")
@@ -172,7 +172,25 @@ class ATCScraper:
             )
             
             # Extract ATC hierarchy by clicking through each level
-            level1_codes = ['A', 'B', 'C', 'D', 'G', 'H', 'J', 'L', 'M', 'N', 'P', 'R', 'S', 'V']
+            EXPECTED_LEVEL1_SECTIONS = ['A', 'B', 'C', 'D', 'G', 'H', 'J', 'L', 'M', 'N', 'P', 'R', 'S', 'V']
+            level1_codes = EXPECTED_LEVEL1_SECTIONS.copy()
+            failed_sections: List[str] = []
+            
+            def reinitialize_driver(chrome_options: Options) -> webdriver.Chrome:
+                """Reinitialize Chrome driver after session expiration."""
+                logger.info("Reinitializing Chrome driver...")
+                if driver:
+                    try:
+                        driver.quit()
+                    except:
+                        pass
+                new_driver = webdriver.Chrome(options=chrome_options)
+                new_driver.get(self.ATC_LIST_URL)
+                WebDriverWait(new_driver, 10).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "body"))
+                )
+                logger.info("Driver reinitialized successfully")
+                return new_driver
             
             for code in level1_codes:
                 logger.info(f"Processing level 1: {code}")
@@ -183,7 +201,16 @@ class ATCScraper:
                     driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", link)
                     time.sleep(0.3)
                     link.click()
-                    time.sleep(2.5)  # Wait for page load and AJAX
+                    # Wait for page load and AJAX - use WebDriverWait for reliability
+                    try:
+                        WebDriverWait(driver, 10).until(
+                            EC.presence_of_element_located(
+                                (By.XPATH, "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]")
+                            )
+                        )
+                    except TimeoutException:
+                        logger.warning(f"Timeout waiting for result grid after clicking {code}")
+                        time.sleep(2)
                     
                     # Extract full hierarchy starting from level 1
                     level1_data = {
@@ -192,31 +219,11 @@ class ATCScraper:
                         "level2": {}
                     }
                     
-                    # Find the main result grid table
-                    # The table has id like: ctl00_mainContentPlaceHolder_aTCListCtrl_nestedATCList_resultGrid_ctl00
-                    try:
-                        result_grid = driver.find_element(
-                            By.XPATH,
-                            "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]"
-                        )
-                        
-                        # Extract level 2 and below recursively
-                        level1_data["level2"] = self._extract_level_recursive(
-                            driver, result_grid, code, level=2
-                        )
-                    except Exception as e:
-                        logger.warning(f"Could not find result grid for {code}: {e}", exc_info=True)
-                        # Try alternative selector
-                        try:
-                            result_grid = driver.find_element(
-                                By.XPATH,
-                                "//table[@class='rgMasterTable']"
-                            )
-                            level1_data["level2"] = self._extract_level_recursive(
-                                driver, result_grid, code, level=2
-                            )
-                        except Exception as e2:
-                            logger.warning(f"Alternative selector also failed for {code}: {e2}")
+                    # Extract level 2 and below using row ID-based navigation
+                    # For level 2, parent_row_id is None (we use main grid)
+                    level1_data["level2"] = self._extract_level_by_row_ids(
+                        driver, None, code, level=2
+                    )
                     
                     if level1_data.get("level2"):
                         self.hierarchy[code] = level1_data
@@ -225,20 +232,126 @@ class ATCScraper:
                         logger.warning(f"  No level 2 data extracted for {code}")
                     
                     # Go back to main page
-                    driver.get(self.ATC_LIST_URL)
-                    time.sleep(1.5)
+                    try:
+                        driver.get(self.ATC_LIST_URL)
+                        time.sleep(1.5)
+                    except InvalidSessionIdException:
+                        # Session expired during navigation - reinitialize and continue
+                        logger.warning(f"Session expired while navigating after {code}. Reinitializing driver...")
+                        try:
+                            driver = reinitialize_driver(chrome_options)
+                        except Exception as reinit_error:
+                            logger.error(f"Failed to reinitialize driver after {code}: {reinit_error}")
+                            failed_sections.append(code)
+                            continue
+                    
+                except InvalidSessionIdException as e:
+                    # Session expired - check if we already saved this section
+                    if code in self.hierarchy:
+                        logger.warning(f"Session expired after successfully saving {code}. Reinitializing driver...")
+                        try:
+                            driver = reinitialize_driver(chrome_options)
+                            # Continue to next section since this one was already saved
+                            continue
+                        except Exception as reinit_error:
+                            logger.error(f"Failed to reinitialize driver after {code}: {reinit_error}")
+                            failed_sections.append(code)
+                            continue
+                    else:
+                        # Section not saved yet - try to recover and retry
+                        logger.error(f"Session expired while processing {code} (not yet saved). Reinitializing and retrying...")
+                        try:
+                            driver = reinitialize_driver(chrome_options)
+                            # Retry this section
+                            logger.info(f"Retrying {code} with new session...")
+                            # Find and click the link for this code
+                            link = driver.find_element(By.LINK_TEXT, code)
+                            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", link)
+                            time.sleep(0.3)
+                            link.click()
+                            # Wait for page load
+                            try:
+                                WebDriverWait(driver, 10).until(
+                                    EC.presence_of_element_located(
+                                        (By.XPATH, "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]")
+                                    )
+                                )
+                            except TimeoutException:
+                                logger.warning(f"Timeout waiting for result grid after clicking {code} (retry)")
+                                time.sleep(2)
+                            
+                            # Extract full hierarchy starting from level 1
+                            level1_data = {
+                                "code": code,
+                                "name": self._get_level_name(code),
+                                "level2": {}
+                            }
+                            
+                            # Extract level 2 and below using row ID-based navigation
+                            level1_data["level2"] = self._extract_level_by_row_ids(
+                                driver, None, code, level=2
+                            )
+                            
+                            if level1_data.get("level2"):
+                                self.hierarchy[code] = level1_data
+                                logger.info(f"  Extracted {len(level1_data['level2'])} level 2 categories for {code} (retry)")
+                            else:
+                                logger.warning(f"  No level 2 data extracted for {code} (retry)")
+                                failed_sections.append(code)
+                            
+                            # Go back to main page
+                            try:
+                                driver.get(self.ATC_LIST_URL)
+                                time.sleep(1.5)
+                            except InvalidSessionIdException:
+                                logger.error(f"Session expired again after retry of {code}")
+                                failed_sections.append(code)
+                                driver = reinitialize_driver(chrome_options)
+                        except Exception as retry_error:
+                            logger.error(f"Failed to retry {code} after session expiration: {retry_error}", exc_info=True)
+                            failed_sections.append(code)
+                            # Try to reinitialize driver for next section
+                            try:
+                                driver = reinitialize_driver(chrome_options)
+                            except:
+                                pass
+                            continue
                     
                 except Exception as e:
                     logger.warning(f"Error processing {code}: {e}", exc_info=True)
+                    failed_sections.append(code)
                     # Try to recover by going back to main page
                     try:
                         driver.get(self.ATC_LIST_URL)
                         time.sleep(1)
+                    except InvalidSessionIdException:
+                        # Session expired during recovery - reinitialize
+                        logger.warning(f"Session expired during recovery for {code}. Reinitializing driver...")
+                        try:
+                            driver = reinitialize_driver(chrome_options)
+                        except Exception as reinit_error:
+                            logger.error(f"Failed to reinitialize driver during recovery for {code}: {reinit_error}")
                     except:
                         pass
                     continue
             
-            logger.info(f"Scraped {len(self.hierarchy)} level 1 categories")
+            # Validate that all expected sections were scraped
+            scraped_sections = set(self.hierarchy.keys())
+            missing_sections = set(EXPECTED_LEVEL1_SECTIONS) - scraped_sections
+            
+            if missing_sections:
+                error_msg = (
+                    f"INCOMPLETE SCRAPING: Only {len(scraped_sections)}/{len(EXPECTED_LEVEL1_SECTIONS)} "
+                    f"sections scraped successfully. Missing sections: {sorted(missing_sections)}. "
+                    f"Failed sections: {sorted(failed_sections) if failed_sections else 'none'}"
+                )
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+            
+            if failed_sections:
+                logger.warning(f"Some sections had errors but were eventually scraped: {sorted(failed_sections)}")
+            
+            logger.info(f"Successfully scraped all {len(EXPECTED_LEVEL1_SECTIONS)} level 1 categories")
             logger.info(f"Found {len(self.drug_mappings)} drug mappings")
             
             return {
@@ -250,6 +363,553 @@ class ATCScraper:
         finally:
             if driver:
                 driver.quit()
+    
+    def _find_row_by_id(
+        self,
+        driver,
+        row_id: str,
+        max_retries: int = 3
+    ):
+        """
+        Safely re-find a row by its ID with retry logic.
+        
+        Args:
+            driver: Selenium WebDriver instance
+            row_id: The ID attribute of the row to find
+            max_retries: Maximum number of retry attempts
+            
+        Returns:
+            WebElement if found, None otherwise
+        """
+        try:
+            from selenium.webdriver.common.by import By
+            from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
+        except ImportError:
+            logger.error("Selenium not available in _find_row_by_id")
+            return None
+        
+        if not row_id:
+            return None
+        
+        for attempt in range(max_retries):
+            try:
+                row = driver.find_element(By.XPATH, f"//tr[@id='{row_id}']")
+                return row
+            except NoSuchElementException:
+                if attempt < max_retries - 1:
+                    time.sleep(0.2 * (attempt + 1))  # Exponential backoff
+                    continue
+                logger.debug(f"Row with ID '{row_id}' not found after {max_retries} attempts")
+                return None
+            except StaleElementReferenceException:
+                if attempt < max_retries - 1:
+                    time.sleep(0.2 * (attempt + 1))
+                    continue
+                logger.debug(f"Row with ID '{row_id}' became stale during lookup")
+                return None
+            except Exception as e:
+                logger.debug(f"Error finding row with ID '{row_id}': {e}")
+                return None
+        
+        return None
+    
+    def _expand_row_by_id(
+        self,
+        driver,
+        row_id: str
+    ) -> bool:
+        """
+        Expand a row by its ID if it's collapsed.
+        
+        Args:
+            driver: Selenium WebDriver instance
+            row_id: The ID attribute of the row to expand
+            
+        Returns:
+            True if expansion was successful or already expanded, False otherwise
+        """
+        try:
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
+            from selenium.common.exceptions import NoSuchElementException, TimeoutException
+        except ImportError:
+            logger.error("Selenium not available in _expand_row_by_id")
+            return False
+        
+        row = self._find_row_by_id(driver, row_id)
+        if not row:
+            logger.debug(f"Could not find row with ID '{row_id}' for expansion")
+            return False
+        
+        try:
+            # Find expand/collapse button
+            expand_btn = row.find_element(
+                By.XPATH,
+                ".//td[1]//input[contains(@class, 'rgExpand') or contains(@class, 'rgCollapse')]"
+            )
+            
+            btn_class = expand_btn.get_attribute("class") or ""
+            is_expanded = "rgCollapse" in btn_class
+            
+            if is_expanded:
+                # Already expanded
+                logger.debug(f"Row {row_id} is already expanded")
+                return True
+            
+            # Need to expand
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", expand_btn)
+            time.sleep(0.3)
+            expand_btn.click()
+            
+            # Wait for detail table to appear
+            try:
+                WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, f"//tr[@id='{row_id}']/following-sibling::tr[1]//table[contains(@class, 'rgDetailTable')]")
+                    )
+                )
+                logger.debug(f"Successfully expanded row {row_id}")
+                return True
+            except TimeoutException:
+                logger.warning(f"Timeout waiting for detail table after expanding row {row_id}")
+                time.sleep(1)  # Give it a bit more time
+                return False
+            
+        except NoSuchElementException:
+            # No expand button - row might not have children
+            logger.debug(f"Row {row_id} has no expand button (no children)")
+            return False
+        except Exception as e:
+            logger.debug(f"Error expanding row {row_id}: {e}")
+            return False
+    
+    def _collapse_row_by_id(
+        self,
+        driver,
+        row_id: str
+    ) -> bool:
+        """
+        Collapse a row by its ID if it's expanded.
+        
+        Args:
+            driver: Selenium WebDriver instance
+            row_id: The ID attribute of the row to collapse
+            
+        Returns:
+            True if collapse was successful or already collapsed, False otherwise
+        """
+        try:
+            from selenium.webdriver.common.by import By
+            from selenium.common.exceptions import NoSuchElementException
+        except ImportError:
+            logger.error("Selenium not available in _collapse_row_by_id")
+            return False
+        
+        row = self._find_row_by_id(driver, row_id)
+        if not row:
+            logger.debug(f"Could not find row with ID '{row_id}' for collapse")
+            return False
+        
+        try:
+            # Find collapse button
+            collapse_btn = row.find_element(
+                By.XPATH,
+                ".//td[1]//input[contains(@class, 'rgCollapse')]"
+            )
+            
+            # Row is expanded, collapse it
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", collapse_btn)
+            time.sleep(0.2)
+            collapse_btn.click()
+            time.sleep(0.3)  # Wait for collapse animation
+            logger.debug(f"Successfully collapsed row {row_id}")
+            return True
+            
+        except NoSuchElementException:
+            # No collapse button - already collapsed
+            logger.debug(f"Row {row_id} is already collapsed")
+            return True
+        except Exception as e:
+            logger.debug(f"Error collapsing row {row_id}: {e}")
+            return False
+    
+    def _collect_child_row_ids(
+        self,
+        driver,
+        parent_row_id: str,
+        level: int
+    ) -> List[str]:
+        """
+        Collect all child row IDs from a parent row's detail table.
+        
+        Args:
+            driver: Selenium WebDriver instance
+            parent_row_id: The ID of the parent row
+            level: Current level (for logging)
+            
+        Returns:
+            List of child row IDs
+        """
+        try:
+            from selenium.webdriver.common.by import By
+            from selenium.common.exceptions import NoSuchElementException
+        except ImportError:
+            logger.error("Selenium not available in _collect_child_row_ids")
+            return []
+        
+        # Expand the parent row if needed
+        if not self._expand_row_by_id(driver, parent_row_id):
+            logger.debug(f"Could not expand parent row {parent_row_id}, no children")
+            return []
+        
+        # Wait a moment for AJAX
+        time.sleep(0.8)
+        
+        # Find the detail table
+        detail_table = None
+        try:
+            detail_table = driver.find_element(
+                By.XPATH,
+                f"//tr[@id='{parent_row_id}']/following-sibling::tr[1]//table[contains(@class, 'rgDetailTable')]"
+            )
+        except NoSuchElementException:
+            logger.debug(f"Could not find detail table for parent row {parent_row_id}")
+            return []
+        
+        # Find all child rows in the detail table
+        # Important: We need to find DIRECT children only, not rows from nested detail tables
+        # Use ./tbody instead of .//tbody to get only direct children, not descendants
+        child_row_ids = []
+        try:
+            # Get only direct child rows (not from nested detail tables)
+            # The detail table structure is: <table><tbody><tr>...</tr></tbody></table>
+            # We want only the <tr> elements that are direct children of this table's tbody
+            all_rows = detail_table.find_elements(
+                By.XPATH,
+                "./tbody/tr[(contains(@class, 'rgRow') or contains(@class, 'rgAltRow')) and td[4]]"
+            )
+            
+            # Filter to only direct children (rows that don't have nested detail tables as siblings)
+            # The structure is: <tr class="rgRow">...</tr> followed by <tr><td><table class="rgDetailTable">...</table></td></tr>
+            # We want only the first <tr> in each pair
+            for row in all_rows:
+                try:
+                    # Check if this row has a nested detail table as a following sibling
+                    # If it does, it means this row has children and we should include it
+                    # But we also need to check if this row itself is a container row (has nested table)
+                    # Actually, we want ALL rows with class rgRow or rgAltRow that have td[4]
+                    # The nested detail tables are in separate <tr> elements, not in the row itself
+                    
+                    row_id = row.get_attribute("id")
+                    if not row_id:
+                        continue
+                    
+                    # Get the code from td[4] to validate it's a real row
+                    try:
+                        code_cell = row.find_element(By.XPATH, ".//td[4]")
+                        code_text = code_cell.text.strip()
+                        if not code_text:
+                            continue
+                    except:
+                        continue
+                    
+                    child_row_ids.append(row_id)
+                    
+                except Exception as e:
+                    logger.debug(f"Error processing row in collection: {e}")
+                    continue
+            
+            logger.info(f"Collected {len(child_row_ids)} child row IDs from parent {parent_row_id} at level {level}")
+            if len(child_row_ids) > 0:
+                # Log the codes we found to help debug
+                codes_found = []
+                for rid in child_row_ids[:10]:  # Check first 10
+                    try:
+                        r = self._find_row_by_id(driver, rid)
+                        if r:
+                            code_cell = r.find_element(By.XPATH, ".//td[4]")
+                            code_text = code_cell.text.strip()
+                            if code_text:
+                                codes_found.append(code_text.replace(" ", "").upper())
+                    except:
+                        pass
+                logger.info(f"Codes found in first {min(10, len(child_row_ids))} rows: {codes_found}")
+            
+        except Exception as e:
+            logger.warning(f"Error collecting child row IDs: {e}", exc_info=True)
+        
+        return child_row_ids
+    
+    def _is_drug_detail_table(self, driver, parent_row_id: str) -> bool:
+        """
+        Check if a detail table contains drugs (not ATC codes) by examining headers.
+        
+        Args:
+            driver: Selenium WebDriver instance
+            parent_row_id: ID of the parent row
+            
+        Returns:
+            True if detail table contains drugs, False if it contains ATC codes
+        """
+        try:
+            from selenium.webdriver.common.by import By
+            from selenium.common.exceptions import NoSuchElementException
+        except ImportError:
+            return False
+        
+        try:
+            # Find the detail table
+            detail_table = driver.find_element(
+                By.XPATH,
+                f"//tr[@id='{parent_row_id}']/following-sibling::tr[1]//table[contains(@class, 'rgDetailTable')]"
+            )
+            
+            # Check the table headers
+            # Drug tables have "Lyfjaheiti" header, ATC code tables have "ATC Flokkur" header
+            try:
+                # Look for "Lyfjaheiti" header (drug table)
+                detail_table.find_element(By.XPATH, ".//th[contains(text(), 'Lyfjaheiti')]")
+                return True
+            except NoSuchElementException:
+                # Look for "ATC Flokkur" header (ATC code table)
+                try:
+                    detail_table.find_element(By.XPATH, ".//th[contains(text(), 'ATC Flokkur')]")
+                    return False
+                except NoSuchElementException:
+                    # Can't determine - default to ATC codes (safer)
+                    return False
+        except:
+            return False
+    
+    def _extract_level_by_row_ids(
+        self,
+        driver,
+        parent_row_id: Optional[str],
+        parent_code: str,
+        level: int = 2,
+        max_level: int = 5
+    ) -> Dict[str, Any]:
+        """
+        Recursively extract ATC hierarchy using row ID-based navigation.
+        
+        This method never maintains references to DOM elements, always re-finding
+        by row ID to avoid stale element issues.
+        
+        Args:
+            driver: Selenium WebDriver instance
+            parent_row_id: ID of the parent row (None for level 2, which uses main grid)
+            parent_code: ATC code of the parent level (e.g., "A" for level 1)
+            level: Current level (2-5)
+            max_level: Maximum level to extract (5 for full ATC)
+            
+        Returns:
+            Dictionary mapping ATC codes to their data
+        """
+        try:
+            from selenium.webdriver.common.by import By
+            from selenium.common.exceptions import NoSuchElementException
+        except ImportError:
+            logger.error("Selenium not available in _extract_level_by_row_ids")
+            return {}
+        
+        result = {}
+        
+        if level > max_level:
+            return result
+        
+        try:
+            # Track processed row IDs to avoid duplicates
+            processed_row_ids = set()
+            
+            # For level 2, we need to get row IDs from the main grid
+            # For deeper levels, we get child row IDs from the parent row
+            if level == 2:
+                # Level 2: Get row IDs from main result grid
+                try:
+                    result_grid = driver.find_element(
+                        By.XPATH,
+                        "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]"
+                    )
+                    rows = result_grid.find_elements(
+                        By.XPATH,
+                        ".//tbody/tr[(contains(@class, 'rgRow') or contains(@class, 'rgAltRow')) and td[4]]"
+                    )
+                    row_ids = []
+                    for row in rows:
+                        try:
+                            row_id = row.get_attribute("id")
+                            if row_id:
+                                row_ids.append(row_id)
+                        except:
+                            continue
+                    logger.info(f"Level {level}: Found {len(row_ids)} rows in main grid for {parent_code}")
+                except Exception as e:
+                    logger.warning(f"Could not find main result grid for level {level}: {e}")
+                    return result
+            else:
+                # Deeper levels: Get child row IDs from parent row
+                if not parent_row_id:
+                    logger.warning(f"No parent_row_id provided for level {level}")
+                    return result
+                
+                row_ids = self._collect_child_row_ids(driver, parent_row_id, level)
+                if not row_ids:
+                    logger.debug(f"Level {level}: No child rows found for parent {parent_code} (row_id: {parent_row_id})")
+                    return result
+                logger.debug(f"Level {level}: Found {len(row_ids)} child rows for {parent_code}")
+            
+            # Process each row ID independently
+            for row_id in row_ids:
+                if row_id in processed_row_ids:
+                    continue
+                
+                processed_row_ids.add(row_id)
+                
+                try:
+                    # Re-find row by ID
+                    row = self._find_row_by_id(driver, row_id)
+                    if not row:
+                        logger.debug(f"Could not find row with ID '{row_id}', skipping")
+                        continue
+                    
+                    # Extract code and name from row
+                    try:
+                        code_cell = row.find_element(By.XPATH, ".//td[4]")
+                        code_text = code_cell.text.strip()
+                        if not code_text:
+                            continue
+                        
+                        code_clean = code_text.replace(" ", "").upper()
+                        
+                        # Validate code length matches expected level
+                        expected_lengths = {2: 3, 3: 4, 4: 5, 5: 7}
+                        if level in expected_lengths and len(code_clean) != expected_lengths[level]:
+                            logger.debug(f"Row {row_id} code {code_clean} length {len(code_clean)} doesn't match expected {expected_lengths[level]} for level {level}, skipping")
+                            continue
+                        
+                        # Validate code starts with parent_code
+                        if not code_clean.startswith(parent_code):
+                            logger.warning(f"Row {row_id} code {code_clean} does not start with parent {parent_code}, skipping")
+                            continue
+                        
+                        # Get name from 5th column
+                        try:
+                            name_cell = row.find_element(By.XPATH, ".//td[5]")
+                            name_text = name_cell.text.strip()
+                        except:
+                            name_text = ""
+                        
+                        level_data = {
+                            "code": code_clean,
+                            "name": name_text
+                        }
+                        
+                        if level <= 3:
+                            logger.info(f"  Processing {code_clean} at level {level} (row_id: {row_id})")
+                        else:
+                            logger.debug(f"  Processing {code_clean} at level {level} (row_id: {row_id})")
+                        
+                        # Check if this row has children
+                        has_child = False
+                        try:
+                            has_child_cell = row.find_element(By.XPATH, ".//td[3]")
+                            has_child_value = has_child_cell.get_attribute("textContent") or ""
+                            has_child_str = has_child_value.strip()
+                            
+                            try:
+                                child_count = int(has_child_str)
+                                has_child = child_count > 0
+                            except ValueError:
+                                has_child = has_child_str == "1"
+                        except:
+                            # Try to find expand button as indicator
+                            try:
+                                row.find_element(
+                                    By.XPATH,
+                                    ".//td[1]//input[contains(@class, 'rgExpand') or contains(@class, 'rgCollapse')]"
+                                )
+                                has_child = True
+                            except:
+                                pass
+                        
+                        # Process based on level
+                        if level == max_level:
+                            # Level 5: Extract drugs
+                            drugs = self._extract_drugs_from_level5(driver, row_id, code_clean)
+                            if drugs:
+                                level_data["drugs"] = drugs
+                                for drug_name in drugs.keys():
+                                    if drug_name not in self.drug_mappings:
+                                        self.drug_mappings[drug_name] = []
+                                    if code_clean not in self.drug_mappings[drug_name]:
+                                        self.drug_mappings[drug_name].append(code_clean)
+                        elif has_child:
+                            # Check if this is level 4 with drug rows directly (irregular pattern)
+                            # vs level 4 with level 5 ATC code children (normal pattern)
+                            if level == 4:
+                                # Check if detail table contains drugs or ATC codes
+                                is_drug_table = self._is_drug_detail_table(driver, row_id)
+                                
+                                if is_drug_table:
+                                    # Case 2: Level 4 expands directly to drugs (A02AH pattern)
+                                    logger.info(f"  {code_clean} has drug table directly, extracting drugs")
+                                    drugs = self._extract_drugs_from_level5(driver, row_id, code_clean)
+                                    if drugs:
+                                        level_data["drugs"] = drugs
+                                        logger.info(f"  Extracted {len(drugs)} drug(s) for {code_clean}")
+                                        for drug_name in drugs.keys():
+                                            if drug_name not in self.drug_mappings:
+                                                self.drug_mappings[drug_name] = []
+                                            if code_clean not in self.drug_mappings[drug_name]:
+                                                self.drug_mappings[drug_name].append(code_clean)
+                                    else:
+                                        logger.debug(f"  No drugs found for {code_clean}")
+                                else:
+                                    # Case 1: Level 4 has level 5 ATC code children (normal pattern)
+                                    children = self._extract_level_by_row_ids(
+                                        driver, row_id, code_clean, level + 1, max_level
+                                    )
+                                    if children:
+                                        level_key = f"level{level + 1}"
+                                        level_data[level_key] = children
+                                        logger.debug(f"  Extracted {len(children)} children for {code_clean}")
+                            else:
+                                # Levels 2-3: Always have ATC code children
+                                children = self._extract_level_by_row_ids(
+                                    driver, row_id, code_clean, level + 1, max_level
+                                )
+                                if children:
+                                    level_key = f"level{level + 1}"
+                                    level_data[level_key] = children
+                                    logger.debug(f"  Extracted {len(children)} children for {code_clean}")
+                            
+                            # DON'T collapse here - we need to keep the row expanded so we can
+                            # continue processing its siblings. We'll collapse the parent row
+                            # after all children are processed (see below)
+                        
+                        result[code_clean] = level_data
+                        
+                    except Exception as e:
+                        logger.debug(f"Error processing row {row_id}: {e}", exc_info=True)
+                        continue
+                        
+                except Exception as e:
+                    logger.debug(f"Error processing row ID {row_id}: {e}", exc_info=True)
+                    continue
+            
+            # After processing all children, collapse the parent row if we expanded it
+            # This only applies to deeper levels (not level 2, which uses main grid)
+            # _collect_child_row_ids expanded the parent row to get child row_ids
+            if level > 2 and parent_row_id:
+                self._collapse_row_by_id(driver, parent_row_id)
+                logger.debug(f"Collapsed parent row {parent_row_id} after processing all children")
+            
+            return result
+            
+        except Exception as e:
+            logger.warning(f"Error extracting level {level} for {parent_code}: {e}", exc_info=True)
+            return result
     
     def _extract_level_recursive(
         self,
@@ -276,7 +936,7 @@ class ATCScraper:
             from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
-            from selenium.common.exceptions import NoSuchElementException, TimeoutException
+            from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException
         except ImportError:
             logger.error("Selenium not available in _extract_level_recursive")
             return {}
@@ -296,81 +956,419 @@ class ATCScraper:
             
             logger.debug(f"Found {len(rows)} potential rows at level {level} for {parent_code}")
             
-            # Store row IDs and codes first, then process (to avoid stale element issues)
-            # We'll re-find each row by ID when processing to avoid DOM staleness
-            row_data_list = []
-            for i, row in enumerate(rows):
+            # Process rows using depth-first traversal
+            # After each branch is processed, re-find all remaining rows to handle DOM changes
+            processed_codes = set()
+            
+            while True:
+                # Re-find parent element if it becomes stale (can happen at any level)
+                # At level 2, we need to find the main result grid
+                # At deeper levels, we need to find the detail table from the parent row
                 try:
+                    # Try to use parent_element - if it's stale, this will fail
+                    _ = parent_element.tag_name
+                except StaleElementReferenceException:
+                    # Parent element is stale, need to re-find it
+                    if level == 2:
+                        # Re-find the main result grid
+                        try:
+                            parent_element = driver.find_element(
+                                By.XPATH,
+                                "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]"
+                            )
+                        except:
+                            try:
+                                parent_element = driver.find_element(
+                                    By.XPATH,
+                                    "//table[@class='rgMasterTable']"
+                                )
+                            except:
+                                logger.warning(f"Could not re-find parent table at level {level}")
+                                break
+                    else:
+                        # For deeper levels, we need to find the detail table again
+                        # This is trickier - we'll try multiple strategies to re-find it
+                        parent_found = False
+                        
+                        # Strategy 1: Find detail tables and check which one has our parent_code
+                        try:
+                            detail_tables = driver.find_elements(
+                                By.XPATH,
+                                "//table[contains(@class, 'rgDetailTable')]"
+                            )
+                            for dt in detail_tables:
+                                try:
+                                    # Check if this table has a row with parent_code
+                                    test_row = dt.find_element(
+                                        By.XPATH,
+                                        f".//tbody/tr[td[4]='{parent_code}']"
+                                    )
+                                    parent_element = dt
+                                    parent_found = True
+                                    logger.debug(f"Re-found parent detail table for {parent_code} using Strategy 1")
+                                    break
+                                except:
+                                    continue
+                        except Exception as e:
+                            logger.debug(f"Strategy 1 failed for {parent_code}: {e}")
+                        
+                        # Strategy 2: If parent_code has a parent (e.g., B06AC -> B06A), find parent's detail table
+                        # and then find the detail table within it
+                        if not parent_found and len(parent_code) > 2:
+                            try:
+                                # Get parent of parent_code (e.g., B06AC -> B06A, B06A -> B06)
+                                parent_of_parent = parent_code[:-1] if len(parent_code) > 3 else parent_code[:-1]
+                                
+                                # Find detail table containing parent_of_parent
+                                parent_tables = driver.find_elements(
+                                    By.XPATH,
+                                    f"//table[contains(@class, 'rgDetailTable')]//tbody/tr[td[4]='{parent_of_parent}']"
+                                )
+                                if parent_tables:
+                                    # Get the table containing this row
+                                    parent_row = parent_tables[0]
+                                    parent_table = parent_row.find_element(By.XPATH, "./ancestor::table[contains(@class, 'rgDetailTable')][1]")
+                                    
+                                    # Now find the detail table for parent_code within this parent table
+                                    try:
+                                        detail_table_row = parent_table.find_element(
+                                            By.XPATH,
+                                            f".//tbody/tr[td[4]='{parent_code}']"
+                                        )
+                                        # Find the detail table that follows this row
+                                        detail_table_tr = detail_table_row.find_element(By.XPATH, "./following-sibling::tr[1]")
+                                        parent_element = detail_table_tr.find_element(
+                                            By.XPATH,
+                                            ".//table[contains(@class, 'rgDetailTable')]"
+                                        )
+                                        parent_found = True
+                                        logger.debug(f"Re-found parent detail table for {parent_code} using Strategy 2")
+                                    except:
+                                        pass
+                            except Exception as e:
+                                logger.debug(f"Strategy 2 failed for {parent_code}: {e}")
+                        
+                        # Strategy 3: Try to find by navigating from the main result grid
+                        if not parent_found:
+                            try:
+                                # Start from main grid and navigate down
+                                main_grid = driver.find_element(
+                                    By.XPATH,
+                                    "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]"
+                                )
+                                # Try to find a path to parent_code's detail table
+                                # This is a fallback - navigate through expanded rows
+                                all_detail_tables = driver.find_elements(
+                                    By.XPATH,
+                                    "//table[contains(@class, 'rgDetailTable')]"
+                                )
+                                # Check each table to see if it's the right one by checking if it has rows
+                                # that would be children of parent_code
+                                for dt in all_detail_tables:
+                                    try:
+                                        # Check if this table appears to be at the right level
+                                        # by checking if it has rows with codes that would be children
+                                        rows_in_table = dt.find_elements(By.XPATH, ".//tbody/tr[td[4]]")
+                                        if rows_in_table:
+                                            # Check first row to see if code length matches expected level
+                                            first_code_cell = rows_in_table[0].find_element(By.XPATH, ".//td[4]")
+                                            first_code = first_code_cell.text.strip().replace(" ", "").upper()
+                                            expected_length = {2: 3, 3: 4, 4: 5, 5: 7}.get(level, 0)
+                                            if expected_length > 0 and len(first_code) == expected_length:
+                                                # This might be our table - verify by checking if parent_code
+                                                # appears in the ancestor chain
+                                                try:
+                                                    # Check if we can find parent_code in an ancestor row
+                                                    ancestor_row = dt.find_element(
+                                                        By.XPATH,
+                                                        f"./ancestor::tr[td[4]='{parent_code}']"
+                                                    )
+                                                    parent_element = dt
+                                                    parent_found = True
+                                                    logger.debug(f"Re-found parent detail table for {parent_code} using Strategy 3")
+                                                    break
+                                                except:
+                                                    pass
+                                    except:
+                                        continue
+                            except Exception as e:
+                                logger.debug(f"Strategy 3 failed for {parent_code}: {e}")
+                        
+                        if not parent_found:
+                            logger.warning(f"Could not re-find parent detail table at level {level} for {parent_code}")
+                            # Try to recover by finding rows through parent's parent
+                            # Find the parent's parent row, then find its detail table, then find parent_code's detail table
+                            if len(parent_code) > 2:
+                                try:
+                                    # Get parent of parent_code (e.g., A02A -> A02)
+                                    parent_of_parent = parent_code[:-1] if len(parent_code) > 3 else parent_code[:-1]
+                                    
+                                    # Find the row with parent_of_parent code
+                                    parent_row = driver.find_element(
+                                        By.XPATH,
+                                        f"//tr[td[4]='{parent_of_parent}']"
+                                    )
+                                    
+                                    # Find the detail table that follows this row
+                                    parent_detail_tr = parent_row.find_element(By.XPATH, "./following-sibling::tr[1]")
+                                    parent_detail_table = parent_detail_tr.find_element(
+                                        By.XPATH,
+                                        ".//table[contains(@class, 'rgDetailTable')]"
+                                    )
+                                    
+                                    # Now find the row with parent_code in this table
+                                    parent_code_row = parent_detail_table.find_element(
+                                        By.XPATH,
+                                        f".//tbody/tr[td[4]='{parent_code}']"
+                                    )
+                                    
+                                    # Find the detail table that follows parent_code row
+                                    detail_tr = parent_code_row.find_element(By.XPATH, "./following-sibling::tr[1]")
+                                    parent_element = detail_tr.find_element(
+                                        By.XPATH,
+                                        ".//table[contains(@class, 'rgDetailTable')]"
+                                    )
+                                    
+                                    parent_found = True
+                                    logger.debug(f"Re-found parent detail table for {parent_code} via parent's parent")
+                                except Exception as e:
+                                    logger.debug(f"Could not recover via parent's parent for {parent_code}: {e}")
+                            
+                            # If still not found, try to continue by finding rows directly
+                            if not parent_found:
+                                # Last resort: try to find any detail table that contains unprocessed rows
+                                # This is less precise but better than breaking
+                                try:
+                                    # Find all detail tables
+                                    all_detail_tables = driver.find_elements(
+                                        By.XPATH,
+                                        "//table[contains(@class, 'rgDetailTable')]"
+                                    )
+                                    
+                                    # Find one that has rows matching our level pattern
+                                    expected_length = {2: 3, 3: 4, 4: 5, 5: 7}.get(level, 0)
+                                    for dt in all_detail_tables:
+                                        try:
+                                            rows_in_table = dt.find_elements(By.XPATH, ".//tbody/tr[td[4]]")
+                                            if rows_in_table:
+                                                # Check if first row matches expected level
+                                                first_code_cell = rows_in_table[0].find_element(By.XPATH, ".//td[4]")
+                                                first_code = first_code_cell.text.strip().replace(" ", "").upper()
+                                                if expected_length > 0 and len(first_code) == expected_length:
+                                                    # Check if this table is a descendant of parent_code's hierarchy
+                                                    # by checking if we can find parent_code in ancestor
+                                                    try:
+                                                        dt.find_element(
+                                                            By.XPATH,
+                                                            f"./ancestor::tr[td[4]='{parent_code}']"
+                                                        )
+                                                        parent_element = dt
+                                                        parent_found = True
+                                                        logger.debug(f"Re-found parent detail table for {parent_code} via fallback search")
+                                                        break
+                                                    except:
+                                                        pass
+                                        except:
+                                            continue
+                                except Exception as e:
+                                    logger.debug(f"Fallback search failed for {parent_code}: {e}")
+                            
+                            # If we still can't find it, log warning but try to continue
+                            # by re-finding from the main grid (only works for level 2)
+                            if not parent_found:
+                                if level == 2:
+                                    try:
+                                        parent_element = driver.find_element(
+                                            By.XPATH,
+                                            "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]"
+                                        )
+                                        logger.debug(f"Re-initialized parent_element from main grid for level {level}")
+                                    except:
+                                        logger.warning(f"Could not recover parent element at level {level}, will try to continue")
+                                        # Don't break - let the row finding logic try to work around it
+                                else:
+                                    logger.warning(f"Could not recover parent element at level {level} for {parent_code}, will try to continue")
+                                    # Don't break - continue and let row finding try alternative methods
+                
+                # Re-find all rows at current level (DOM may have changed)
+                try:
+                    rows = parent_element.find_elements(By.XPATH, row_xpath)
+                except StaleElementReferenceException:
+                    # Parent became stale during iteration, re-find and retry
+                    logger.debug(f"Parent element became stale at level {level}, re-finding...")
+                    if level == 2:
+                        try:
+                            parent_element = driver.find_element(
+                                By.XPATH,
+                                "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]"
+                            )
+                            rows = parent_element.find_elements(By.XPATH, row_xpath)
+                        except:
+                            logger.warning(f"Could not recover from stale element at level {level}, trying alternative method")
+                            # Try to find rows by searching for all rows at this level, filtered by parent_code
+                            try:
+                                expected_length = {2: 3, 3: 4, 4: 5, 5: 7}.get(level, 0)
+                                if expected_length > 0:
+                                    # Find all rows with ATC codes of expected length
+                                    all_rows = driver.find_elements(
+                                        By.XPATH,
+                                        f"//tbody/tr[td[4] and string-length(translate(td[4], ' ', ''))={expected_length}]"
+                                    )
+                                    # Filter to only rows that start with parent_code
+                                    rows = []
+                                    for r in all_rows:
+                                        try:
+                                            code_cell = r.find_element(By.XPATH, ".//td[4]")
+                                            code_text = code_cell.text.strip().replace(" ", "").upper()
+                                            if code_text.startswith(parent_code):
+                                                rows.append(r)
+                                        except:
+                                            continue
+                                    logger.debug(f"Found {len(rows)} rows using alternative method at level {level} (filtered by parent_code {parent_code})")
+                                else:
+                                    rows = []
+                            except:
+                                logger.warning(f"Could not find rows at level {level}")
+                                rows = []
+                    else:
+                        # For deeper levels, try to re-find parent using strategies from above
+                        logger.debug(f"Stale element at level {level}, attempting recovery")
+                        # The parent re-finding logic above should have handled this, but if we get here,
+                        # try one more time to find rows by searching for detail tables
+                        try:
+                            # Find detail table containing parent_code
+                            parent_code_row = driver.find_element(
+                                By.XPATH,
+                                f"//tr[td[4]='{parent_code}']"
+                            )
+                            detail_tr = parent_code_row.find_element(By.XPATH, "./following-sibling::tr[1]")
+                            parent_element = detail_tr.find_element(
+                                By.XPATH,
+                                ".//table[contains(@class, 'rgDetailTable')]"
+                            )
+                            rows = parent_element.find_elements(By.XPATH, row_xpath)
+                            logger.debug(f"Recovered parent element and found {len(rows)} rows")
+                        except:
+                            logger.debug(f"Could not recover at level {level}, will try to continue")
+                            # Try to find rows by pattern matching, but filter by parent_code prefix
+                            try:
+                                expected_length = {2: 3, 3: 4, 4: 5, 5: 7}.get(level, 0)
+                                if expected_length > 0:
+                                    # Find all rows at this level, then filter by parent_code
+                                    all_rows = driver.find_elements(
+                                        By.XPATH,
+                                        f"//table[contains(@class, 'rgDetailTable')]//tbody/tr[td[4] and string-length(translate(td[4], ' ', ''))={expected_length}]"
+                                    )
+                                    # Filter to only rows that start with parent_code
+                                    rows = []
+                                    for r in all_rows:
+                                        try:
+                                            code_cell = r.find_element(By.XPATH, ".//td[4]")
+                                            code_text = code_cell.text.strip().replace(" ", "").upper()
+                                            if code_text.startswith(parent_code):
+                                                rows.append(r)
+                                        except:
+                                            continue
+                                    logger.debug(f"Found {len(rows)} rows using pattern matching at level {level} (filtered by parent_code {parent_code})")
+                                else:
+                                    rows = []
+                            except:
+                                rows = []
+                
+                # Find next unprocessed row
+                next_row = None
+                next_code = None
+                
+                for row in rows:
+                    try:
+                        # Skip rows with nested tables (already expanded)
+                        try:
+                            row.find_element(By.XPATH, ".//table[contains(@class, 'rgDetailTable')]")
+                            continue
+                        except (NoSuchElementException, StaleElementReferenceException):
+                            pass
+                        
+                        code_cell = row.find_element(By.XPATH, ".//td[4]")
+                        code_text = code_cell.text.strip()
+                        if not code_text:
+                            continue
+                        
+                        code_clean = code_text.replace(" ", "").upper()
+                        expected_lengths = {2: 3, 3: 4, 4: 5, 5: 7}
+                        if level in expected_lengths and len(code_clean) != expected_lengths[level]:
+                            continue
+                        
+                        if code_clean not in processed_codes:
+                            next_row = row
+                            next_code = code_clean
+                            break
+                    except StaleElementReferenceException:
+                        # Row became stale, skip it and continue
+                        continue
+                    except:
+                        continue
+                
+                if not next_row:
+                    # No more rows to process
+                    break
+                
+                # Process this row
+                code_clean = next_code
+                row = next_row
+                processed_codes.add(code_clean)
+                try:
+                    # Re-find the row by code (DOM may have changed from previous expansions)
+                    try:
+                        row = parent_element.find_element(
+                            By.XPATH,
+                            f".//tbody/tr[td[4]='{code_clean}']"
+                        )
+                    except (StaleElementReferenceException, AttributeError):
+                        # Parent became stale or is None, try to re-find row directly
+                        try:
+                            # Find row directly by code, but ensure it starts with parent_code
+                            if code_clean.startswith(parent_code):
+                                row = driver.find_element(
+                                    By.XPATH,
+                                    f"//tr[td[4]='{code_clean}']"
+                                )
+                                # Try to update parent_element if we can find it
+                                try:
+                                    if level == 2:
+                                        parent_element = driver.find_element(
+                                            By.XPATH,
+                                            "//table[contains(@id, 'resultGrid') and contains(@class, 'rgMasterTable')]"
+                                        )
+                                    else:
+                                        # Find the detail table that contains this row
+                                        # The row is inside a detail table, so find the ancestor table
+                                        parent_element = row.find_element(
+                                            By.XPATH,
+                                            "./ancestor::table[contains(@class, 'rgDetailTable')][1]"
+                                        )
+                                except:
+                                    pass  # Keep using row even if we can't update parent_element
+                            else:
+                                logger.debug(f"Row {code_clean} does not belong to parent {parent_code}, skipping")
+                                continue
+                        except:
+                            logger.debug(f"Could not re-find row for {code_clean}, skipping")
+                            continue
+                    except:
+                        logger.debug(f"Could not find row for {code_clean}, skipping")
+                        continue
+                    
                     # Check if this row has a nested detail table (already expanded)
                     # If so, skip it as it's a container row
                     try:
                         row.find_element(By.XPATH, ".//table[contains(@class, 'rgDetailTable')]")
-                        # This row contains a nested table, skip it
-                        logger.debug(f"  Row {i}: Skipping (contains nested table)")
+                        logger.debug(f"  {code_clean}: Skipping (contains nested table)")
                         continue
                     except NoSuchElementException:
                         pass
                     
-                    # Get ATC code and row ID early to validate
-                    try:
-                        code_cell = row.find_element(By.XPATH, ".//td[4]")
-                        code_text = code_cell.text.strip()
-                        row_id = row.get_attribute("id")
-                    except:
-                        logger.debug(f"  Row {i}: No code cell found")
-                        continue
-                    
-                    if not code_text:
-                        logger.debug(f"  Row {i}: Empty code text")
-                        continue
-                    
-                    code_clean = code_text.replace(" ", "").upper()
-                    expected_lengths = {2: 3, 3: 4, 4: 5, 5: 7}
-                    if level in expected_lengths and len(code_clean) != expected_lengths[level]:
-                        logger.debug(f"  Row {i}: Code '{code_clean}' length {len(code_clean)} doesn't match expected {expected_lengths[level]} for level {level}")
-                        continue
-                    
-                    # Store row ID and code for later processing (not the row element itself)
-                    row_data_list.append((row_id, code_clean))
-                    logger.debug(f"  Row {i}: Added '{code_clean}' (id={row_id}) to processing list")
-                
-                except Exception as e:
-                    logger.debug(f"Error pre-processing row {i}: {e}")
-                    continue
-            
-            logger.debug(f"Processing {len(row_data_list)} valid rows at level {level}")
-            
-            # Now process each row - re-find it fresh each time to avoid stale elements
-            for stored_row_id, code_clean in row_data_list:
-                try:
-                    # Re-find the row element by ID (critical because DOM changes after each expansion)
-                    row = None
-                    if stored_row_id:
-                        try:
-                            row = driver.find_element(By.ID, stored_row_id)
-                        except:
-                            # If can't find by ID, try to find by code in the table
-                            try:
-                                row = parent_element.find_element(
-                                    By.XPATH,
-                                    f".//tbody/tr[td[4]='{code_clean}']"
-                                )
-                            except:
-                                logger.debug(f"Could not re-find row for {code_clean} by ID or code, skipping")
-                                continue
-                    else:
-                        # No ID, try to find by code
-                        try:
-                            row = parent_element.find_element(
-                                By.XPATH,
-                                f".//tbody/tr[td[4]='{code_clean}']"
-                            )
-                        except:
-                            logger.debug(f"Could not find row for {code_clean} by code, skipping")
-                            continue
-                    
-                    # Get current row ID for later use
-                    current_row_id = row.get_attribute("id")
+                    # Get row ID
+                    row_id = row.get_attribute("id")
                     
                     # Get name from 5th column (td[5])
                     try:
@@ -384,9 +1382,16 @@ class ATCScraper:
                         "name": name_text
                     }
                     
+                    # Get current row ID for later use
+                    current_row_id = row.get_attribute("id")
+                    
+                    if level <= 3:
+                        logger.info(f"  Processing {code_clean} at level {level} (depth-first)")
+                    else:
+                        logger.debug(f"  Processing {code_clean} at level {level} (depth-first)")
+                    
+                    # Process this row immediately (depth-first approach)
                     # Check if this row has children
-                    # In nested tables, td[3] contains the COUNT of children (e.g., "46"), not a boolean "1"
-                    # At top level, it might be "1" for has children, "0" for no children
                     has_child = False
                     try:
                         has_child_cell = row.find_element(By.XPATH, ".//td[3]")
@@ -398,22 +1403,16 @@ class ATCScraper:
                             child_count = int(has_child_str)
                             has_child = child_count > 0
                         except ValueError:
-                            # Not numeric, check if it's "1" (boolean true)
                             has_child = has_child_str == "1"
-                        
-                        logger.debug(f"  {code_clean}: has_child from td[3] = {has_child} (value='{has_child_str}')")
-                    except Exception as e:
-                        logger.debug(f"  {code_clean}: Could not read has_child from td[3]: {e}")
-                        # Try to find expand button as indicator (most reliable)
+                    except:
+                        # Try to find expand button as indicator
                         try:
                             expand_btn = row.find_element(
                                 By.XPATH, 
                                 ".//td[1]//input[contains(@class, 'rgExpand') or contains(@class, 'rgCollapse')]"
                             )
                             has_child = True
-                            logger.debug(f"  {code_clean}: has_child = True (found expand button)")
                         except:
-                            logger.debug(f"  {code_clean}: has_child = False (no expand button found)")
                             pass
                     
                     # If level 5, extract drugs
@@ -421,111 +1420,70 @@ class ATCScraper:
                         drugs = self._extract_drugs_from_level5(driver, row, code_clean)
                         if drugs:
                             level_data["drugs"] = drugs
-                            # Add to drug mappings
                             for drug_name in drugs.keys():
                                 if drug_name not in self.drug_mappings:
                                     self.drug_mappings[drug_name] = []
                                 if code_clean not in self.drug_mappings[drug_name]:
                                     self.drug_mappings[drug_name].append(code_clean)
                     elif has_child:
-                        # Try to expand this row to see children
+                        # Expand → Process → Collapse pattern
+                        # Remember entry point (row_id) before expanding
+                        entry_point_row_id = current_row_id
+                        was_expanded_before = False
+                        
                         try:
-                            # Find expand button in first column
                             expand_btn = row.find_element(
                                 By.XPATH,
                                 ".//td[1]//input[contains(@class, 'rgExpand') or contains(@class, 'rgCollapse')]"
                             )
                             
-                            # Check if already expanded
                             btn_class = expand_btn.get_attribute("class") or ""
                             is_expanded = "rgCollapse" in btn_class
+                            was_expanded_before = is_expanded
                             
                             if not is_expanded:
-                                # Scroll into view and click
+                                # Expand the row
                                 driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", expand_btn)
                                 time.sleep(0.3)
                                 expand_btn.click()
-                                # Wait for AJAX expansion - wait for detail table to appear
                                 try:
-                                    if current_row_id:
+                                    if entry_point_row_id:
                                         WebDriverWait(driver, 5).until(
                                             EC.presence_of_element_located(
-                                                (By.XPATH, f"//tr[@id='{current_row_id}']/following-sibling::tr[1]//table[contains(@class, 'rgDetailTable')]")
+                                                (By.XPATH, f"//tr[@id='{entry_point_row_id}']/following-sibling::tr[1]//table[contains(@class, 'rgDetailTable')]")
                                             )
                                         )
                                     else:
-                                        time.sleep(2)  # Fallback wait
+                                        time.sleep(2)
                                 except TimeoutException:
-                                    time.sleep(2)  # Fallback wait
+                                    time.sleep(2)
                                 except:
-                                    time.sleep(2)  # Fallback wait
+                                    time.sleep(2)
                             
-                            # Find the nested Detail table for children
-                            # The detail table appears in the following sibling <tr> after expansion
-                            # Wait a moment for AJAX to complete
+                            # Find detail table
                             time.sleep(0.8)
-                            
                             detail_table = None
                             
-                            # Method 1: Find following sibling tr with Detail table using row ID (most reliable)
-                            if current_row_id:
+                            if entry_point_row_id:
                                 try:
-                                    # Find the next sibling row that contains a detail table
-                                    # The detail row is the immediate following sibling
                                     detail_table = driver.find_element(
                                         By.XPATH,
-                                        f"//tr[@id='{current_row_id}']/following-sibling::tr[1]//table[contains(@class, 'rgDetailTable')]"
+                                        f"//tr[@id='{entry_point_row_id}']/following-sibling::tr[1]//table[contains(@class, 'rgDetailTable')]"
                                     )
-                                    logger.debug(f"  Found detail table for {code_clean} using Method 1")
-                                except Exception as e:
-                                    logger.debug(f"  Method 1 failed for {code_clean}: {e}")
+                                except:
                                     pass
                             
-                            # Method 2: Find from parent using XPath with preceding-sibling
-                            if not detail_table and current_row_id:
+                            if not detail_table and entry_point_row_id:
                                 try:
                                     detail_table = parent_element.find_element(
                                         By.XPATH,
-                                        f".//tr[preceding-sibling::tr[@id='{current_row_id}']][1]//table[contains(@class, 'rgDetailTable')]"
+                                        f".//tr[preceding-sibling::tr[@id='{entry_point_row_id}']][1]//table[contains(@class, 'rgDetailTable')]"
                                     )
-                                    logger.debug(f"  Found detail table for {code_clean} using Method 2")
-                                except Exception as e:
-                                    logger.debug(f"  Method 2 failed for {code_clean}: {e}")
-                                    pass
-                            
-                            # Method 3: Find all detail tables and match by position
-                            if not detail_table and current_row_id:
-                                try:
-                                    # Get all rows in tbody to find our row's position
-                                    all_tbody_rows = parent_element.find_elements(
-                                        By.XPATH,
-                                        ".//tbody/tr"
-                                    )
-                                    
-                                    # Find our row's index
-                                    our_row_idx = None
-                                    for idx, r in enumerate(all_tbody_rows):
-                                        if r.get_attribute("id") == current_row_id:
-                                            our_row_idx = idx
-                                            break
-                                    
-                                    # If found, check the next row
-                                    if our_row_idx is not None and our_row_idx + 1 < len(all_tbody_rows):
-                                        next_row = all_tbody_rows[our_row_idx + 1]
-                                        try:
-                                            detail_table = next_row.find_element(
-                                                By.XPATH,
-                                                ".//table[contains(@class, 'rgDetailTable')]"
-                                            )
-                                            logger.debug(f"  Found detail table for {code_clean} using Method 3")
-                                        except:
-                                            pass
-                                except Exception as e:
-                                    logger.debug(f"  Method 3 failed for {code_clean}: {e}")
+                                except:
                                     pass
                             
                             if detail_table:
-                                # Recursively extract children
+                                # Recursively process children (depth-first - fully process this branch before returning)
                                 children = self._extract_level_recursive(
                                     driver, detail_table, code_clean, level + 1, max_level
                                 )
@@ -534,12 +1492,38 @@ class ATCScraper:
                                     level_key = f"level{level + 1}"
                                     level_data[level_key] = children
                                     logger.debug(f"  Extracted {len(children)} children for {code_clean}")
-                            else:
-                                logger.debug(f"No detail table found for {code_clean} at level {level} (has_child={has_child})")
+                            
+                            # After processing children, collapse the row if we expanded it
+                            # Re-find the row by ID to avoid stale element issues
+                            if entry_point_row_id and not was_expanded_before:
+                                try:
+                                    # Re-find the row by ID
+                                    entry_row = driver.find_element(
+                                        By.XPATH,
+                                        f"//tr[@id='{entry_point_row_id}']"
+                                    )
+                                    
+                                    # Check if it's still expanded
+                                    try:
+                                        collapse_btn = entry_row.find_element(
+                                            By.XPATH,
+                                            ".//td[1]//input[contains(@class, 'rgCollapse')]"
+                                        )
+                                        # Row is expanded, collapse it
+                                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", collapse_btn)
+                                        time.sleep(0.2)
+                                        collapse_btn.click()
+                                        # Wait for collapse animation
+                                        time.sleep(0.3)
+                                        logger.debug(f"  Collapsed {code_clean} after processing")
+                                    except NoSuchElementException:
+                                        # Already collapsed or no collapse button
+                                        pass
+                                except Exception as e:
+                                    # Row might be stale or not found - that's okay, continue
+                                    logger.debug(f"  Could not collapse {code_clean} (row may be stale): {e}")
                         
                         except NoSuchElementException:
-                            # No nested table found - might be at leaf level
-                            logger.debug(f"No detail table found for {code_clean} at level {level} (NoSuchElementException)")
                             pass
                         except Exception as e:
                             logger.debug(f"Could not expand {code_clean} at level {level}: {e}")
@@ -547,7 +1531,7 @@ class ATCScraper:
                     result[code_clean] = level_data
                 
                 except Exception as e:
-                    logger.debug(f"Error processing row {code_clean} at level {level}: {e}", exc_info=True)
+                    logger.debug(f"Error processing {code_clean} at level {level}: {e}", exc_info=True)
                     continue
             
             return result
@@ -559,7 +1543,7 @@ class ATCScraper:
     def _extract_drugs_from_level5(
         self,
         driver,
-        row,
+        row_id: str,
         atc_code: str
     ) -> Dict[str, Dict[str, Any]]:
         """
@@ -567,7 +1551,7 @@ class ATCScraper:
         
         Args:
             driver: Selenium WebDriver instance
-            row: The table row element for level 5
+            row_id: The ID of the table row for level 5
             atc_code: ATC code for this row (e.g., "A01AA01")
             
         Returns:
@@ -583,49 +1567,42 @@ class ATCScraper:
         drugs = {}
         
         try:
+            # Re-find row by ID
+            row = self._find_row_by_id(driver, row_id)
+            if not row:
+                logger.debug(f"Could not find row with ID '{row_id}' for drug extraction")
+                return {}
+            
             # First, ensure the level 5 row is expanded
-            # Check if it has an expand button and click it if needed
-            try:
-                expand_btn = row.find_element(
-                    By.XPATH,
-                    ".//td[1]//input[contains(@class, 'rgExpand')]"
-                )
-                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", expand_btn)
-                time.sleep(0.3)
-                expand_btn.click()
-                time.sleep(1.5)  # Wait for AJAX expansion
-            except NoSuchElementException:
-                # Already expanded or no expand button
-                pass
+            if not self._expand_row_by_id(driver, row_id):
+                logger.debug(f"Could not expand row {row_id} for drug extraction")
+                return {}
             
             # Find the nested Detail table that contains drug information
             # The detail table appears in the following sibling <tr> after expansion
+            # Wait a moment for AJAX to complete
+            time.sleep(0.8)
+            
             detail_table = None
             
-            # Method 1: Find following sibling tr with Detail table
+            # Find following sibling tr with Detail table using row ID (most reliable)
             try:
-                next_row = row.find_element(By.XPATH, "./following-sibling::tr[1]")
-                detail_table = next_row.find_element(
+                detail_table = driver.find_element(
                     By.XPATH,
-                    ".//table[contains(@class, 'rgDetailTable')]"
+                    f"//tr[@id='{row_id}']/following-sibling::tr[1]//table[contains(@class, 'rgDetailTable')]"
                 )
-            except:
-                pass
-            
-            # Method 2: Find Detail table by ID pattern (contains "Detail" and is nested)
-            if not detail_table:
-                try:
-                    row_id = row.get_attribute("id") or ""
-                    # Look for detail table in following rows
-                    detail_table = driver.find_element(
-                        By.XPATH,
-                        f"//tr[preceding-sibling::tr[@id='{row_id}']]//table[contains(@class, 'rgDetailTable')]"
-                    )
-                except:
-                    pass
+                logger.debug(f"  Found drug detail table for {atc_code} using row ID")
+            except NoSuchElementException:
+                # If we can't find the detail table, return empty rather than guessing
+                # This typically means the ATC code has no associated drugs (empty category)
+                logger.debug(f"  Could not find drug detail table for {atc_code} - empty category")
+                return drugs
+            except Exception as e:
+                logger.debug(f"  Error finding drug detail table for {atc_code}: {e}")
+                return drugs
             
             if not detail_table:
-                logger.debug(f"No detail table found for level 5 {atc_code}")
+                logger.debug(f"  No drug detail table found for {atc_code}")
                 return drugs
             
             # Find all drug rows in the detail table
@@ -635,7 +1612,7 @@ class ATCScraper:
                 ".//tbody/tr[contains(@class, 'rgRow') or contains(@class, 'rgAltRow')]"
             )
             
-            logger.debug(f"Found {len(drug_rows)} drug rows for {atc_code}")
+            logger.info(f"Found {len(drug_rows)} drug row(s) for {atc_code}")
             
             for drug_row in drug_rows:
                 try:
@@ -698,16 +1675,30 @@ class ATCScraper:
                         pass
                     
                     if drug_name:
-                        # Use drug name as key, but store full info
-                        drugs[drug_name] = {
-                            "atc_code": atc_code,
-                            "form_strength": form_strength,
-                            "documents": documents
-                        }
+                        # Store formulations as array to handle multiple formulations of same drug
+                        if drug_name in drugs:
+                            # Append to existing formulations array
+                            drugs[drug_name]["formulations"].append({
+                                "form_strength": form_strength,
+                                "documents": documents
+                            })
+                        else:
+                            # Create new entry with formulations array
+                            drugs[drug_name] = {
+                                "atc_code": atc_code,
+                                "formulations": [{
+                                    "form_strength": form_strength,
+                                    "documents": documents
+                                }]
+                            }
                 
                 except Exception as e:
                     logger.debug(f"Error extracting drug from row: {e}")
                     continue
+            
+            # Log successful extraction
+            if drugs:
+                logger.info(f"Extracted {len(drugs)} drug(s) for {atc_code}")
         
         except Exception as e:
             logger.debug(f"Error extracting drugs for {atc_code}: {e}", exc_info=True)
